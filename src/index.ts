@@ -1,5 +1,9 @@
 import express, { Express, Request, Response } from 'express';
 import path from 'path';
+import mongoose from 'mongoose';
+import * as dotenv from 'dotenv';
+
+dotenv.config();
 
 const app: Express = express();
 const port = 3001;
@@ -16,6 +20,18 @@ app.get('/api/test', (_, res: Response) => {
   }
 
   res.json(test);
+});
+
+app.get('/api/db_test', (_, res: Response) => {
+  try {
+    // Connect to the MongoDB cluster
+    mongoose.connect(
+      process.env.MONGODB_URI as string,
+      () => res.send("Mongoose is connected")
+    );
+  } catch (e) {
+    res.send("could not connect");
+  }
 });
 
 app.get('*', (_, res: Response) => {
