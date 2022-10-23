@@ -12,7 +12,7 @@ The ULC Schedule Maker runs on a MERN stack. The database is hosted with MongoDB
 
 To run in a dev environment:
 
-0. Make sure you have Yarn installed. Find more information [here](https://classic.yarnpkg.com/lang/en/docs/install/). 
+0. Make sure you have Yarn installed. Find more information [here](https://classic.yarnpkg.com/lang/en/docs/install/).
 1. `git clone` the repository
 2. In the local repository, run `yarn install`.
 3. Run `cd ./client` and run `yarn install` again.
