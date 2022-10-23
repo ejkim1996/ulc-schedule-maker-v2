@@ -69,7 +69,11 @@ app.get(
 );
 
 app.get("/protected", isLoggedIn, (req, res) => {
-  res.send(`Hello! ${req.user?.profile.displayName}`); 
+  let test = {
+    "data": req.user?.profile.displayName,
+  }
+
+  res.json(test);
 });
 
 app.get("/auth/failure", (_, res) => {
