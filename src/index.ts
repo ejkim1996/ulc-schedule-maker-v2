@@ -10,7 +10,7 @@ import "./auth";
 dotenv.config();
 
 const app: Express = express();
-const port = 3001;
+const port = process.env.PORT ?? 3001;
 
 function isLoggedIn(req: Request, res: Response, next: NextFunction) {
   req.user ? next() : res.sendStatus(401);
@@ -56,19 +56,19 @@ app.post("logout", (req, res, next) => {
 })
 
 app.get(
-  "/auth/google",
+  "/api/auth/google",
   passport.authenticate("google", { scope: ["email", "profile"] })
 );
 
 app.get(
   "/google/callback",
   passport.authenticate("google", {
-    successRedirect: "/protected",
+    successRedirect: `${process.env.FE_URL}/protected`,
     failureRedirect: "/auth/failure",
   })
 );
 
-app.get("/protected", isLoggedIn, (req, res) => {
+app.get("/api/protected", isLoggedIn, (req, res) => {
   let test = {
     "data": req.user?.profile.displayName,
   }
@@ -80,9 +80,6 @@ app.get("/auth/failure", (_, res) => {
   res.send("Failed to log in!");
 });
 
-app.get("*", (_, res: Response) => {
-  res.sendFile(path.join(__dirname, "../../client/build/index.html"));
-});
 
 app.listen(port, () => {
   console.log(`⚡️[server]: Server is running at https://localhost:${port}`);
