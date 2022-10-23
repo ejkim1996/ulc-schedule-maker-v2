@@ -5,6 +5,7 @@ declare global {
   namespace Express {
     export interface User {
       profile: Profile;
+      accessToken: string;
     }
   }
 }

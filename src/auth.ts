@@ -3,7 +3,12 @@ import * as dotenv from "dotenv";
 
 dotenv.config();
 
-import { Strategy as GoogleStrategy } from "passport-google-oauth20";
+import {
+  GoogleCallbackParameters,
+  Profile,
+  Strategy as GoogleStrategy,
+  VerifyCallback,
+} from "passport-google-oauth20";
 
 passport.use(
   new GoogleStrategy(
@@ -11,11 +16,18 @@ passport.use(
       clientID: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
       callbackURL: "http://localhost:3001/google/callback",
-      scope: ["profile"],
+      scope: ["profile", "https://www.googleapis.com/auth/calendar.readonly"],
       passReqToCallback: true,
     },
-    function verify(_accessToken, _refreshToken, _params, profile, done) {
-      return done(null, { profile: profile });
+    function verify(
+      _req: Express.Request,
+      accessToken: string,
+      _refreshToken: string,
+      _params: GoogleCallbackParameters,
+      profile: Profile,
+      done: VerifyCallback
+    ) {
+      return done(null, { profile: profile, accessToken: accessToken });
     }
   )
 );

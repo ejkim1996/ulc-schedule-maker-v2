@@ -13,7 +13,7 @@ const app: Express = express();
 const port = process.env.PORT ?? 3001;
 
 function isLoggedIn(req: Request, res: Response, next: NextFunction) {
-  req.user ? next() : res.sendStatus(401);
+    req.user ? next() : res.sendStatus(401);
 }
 
 app.use(express.static(path.join(__dirname, "client/build")));
@@ -22,65 +22,85 @@ app.use(passport.initialize());
 app.use(passport.session());
 
 app.get("/", (_, res: Response) => {
-  res.send("test");
+    res.send("test");
 });
 
 app.get("/api/test", (_, res: Response) => {
-  const test = {
-    data: "this is some data",
-  };
+    const test = {
+        data: "this is some data",
+    };
 
-  res.json(test);
+    res.json(test);
 });
 
 app.get("/api/db_test", (_, res: Response) => {
-  try {
-    // Connect to the MongoDB cluster
-    mongoose.connect(process.env.MONGODB_URI as string, () =>
-      res.send("Mongoose is connected")
-    );
-  } catch (e) {
-    res.send("could not connect");
-  }
+    try {
+        // Connect to the MongoDB cluster
+        mongoose.connect(process.env.MONGODB_URI as string, () =>
+            res.send("Mongoose is connected")
+        );
+    } catch (e) {
+        res.send("could not connect");
+    }
 });
 
 app.get("/login", (_, res) => {
-  res.send("<a href='/auth/google'>Authenticate with Google</a>");
+    res.send("<a href='/auth/google'>Authenticate with Google</a>");
 });
 
 app.post("logout", (req, res, next) => {
-  req.logout((err) => {
-    if (err) { return next(err); }
-    res.send("Goodbye!");
-  });
-})
+    req.logout((err) => {
+        if (err) {
+            return next(err);
+        }
+        res.send("Goodbye!");
+    });
+});
 
 app.get(
-  "/api/auth/google",
-  passport.authenticate("google", { scope: ["email", "profile"] })
+    "/api/auth/google",
+    passport.authenticate("google", {
+        scope: [
+            "email",
+            "profile",
+            "https://www.googleapis.com/auth/calendar.readonly",
+        ],
+    })
 );
 
 app.get(
-  "/google/callback",
-  passport.authenticate("google", {
-    successRedirect: `${process.env.FE_URL}/protected`,
-    failureRedirect: "/auth/failure",
-  })
+    "/google/callback",
+    passport.authenticate("google", {
+        successRedirect: `${process.env.FE_URL}/protected`,
+        failureRedirect: "/auth/failure",
+    })
 );
 
 app.get("/api/protected", isLoggedIn, (req, res) => {
-  let test = {
-    "data": req.user?.profile.displayName,
-  }
+    let test = {
+        name: req.user?.profile.displayName,
+        accessToken: req.user?.accessToken,
+    };
 
-  res.json(test);
+    res.json(test);
+});
+
+app.get("/api/get_calendars", async (req, res) => {
+    let url =
+        "https://www.googleapis.com/calendar/v3/users/me/calendarList?access_token=" +
+        req.user?.accessToken;
+
+    const data = await fetch(url, {
+        method: "GET",
+    });
+
+    res.json(await data.json());
 });
 
 app.get("/auth/failure", (_, res) => {
-  res.send("Failed to log in!");
+    res.send("Failed to log in!");
 });
 
-
 app.listen(port, () => {
-  console.log(`⚡️[server]: Server is running at https://localhost:${port}`);
+    console.log(`⚡️[server]: Server is running at https://localhost:${port}`);
 });
