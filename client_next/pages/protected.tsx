@@ -1,7 +1,7 @@
-import type { NextPage } from 'next';
-import { useEffect, useState } from 'react';
-import { setEnvironmentData } from 'worker_threads';
-import { calendar_v3 } from '@googleapis/calendar';
+import type { NextPage } from "next";
+import { useEffect, useState } from "react";
+import { setEnvironmentData } from "worker_threads";
+import { calendar_v3 } from "@googleapis/calendar";
 import Calendar = calendar_v3.Calendar;
 import CalendarList = calendar_v3.Schema$CalendarListEntry;
 
@@ -12,7 +12,7 @@ const Protected: NextPage = () => {
     useEffect(() => {
         fetchUsername();
         fetchCalendars();
-    });
+    }, []);
 
     async function fetchUsername() {
         const res = await fetch("/api/protected", {
@@ -28,22 +28,19 @@ const Protected: NextPage = () => {
         });
 
         const data = await res.json();
-        
-        console.log(data);
+
         setItems(data.items.map((item: CalendarList) => item.summary));
     }
 
-    const listItems = items.map((item) => 
-        <li key="{item}">{item}</li>
-    )
+    const listItems = items.map((item) => <li key={item}>{item}</li>);
 
-    return (<div>
-        <h1>Hello {username}</h1>
-        <ul>
-            {listItems}
-        </ul>
-    </div>)
-}
+    return (
+        <div>
+            <h1>Hello {username}</h1>
+            <ul>{listItems}</ul>
+        </div>
+    );
+};
 
 // TODO: Figure out Next.js integration for the code above
 //
