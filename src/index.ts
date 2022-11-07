@@ -180,35 +180,32 @@ app.get("/api/events", async (req, res) => {
     }, new Set<String>());
 
     const map = bin(eventWrapperList, classes);
-    // const output: any = {};
-    // const input: any = {};
-    // [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
-    //     classes.forEach((c) => {
-    //         const algoInputEventWrapperList = map.get(day)?.get(c);
-    //         if (algoInputEventWrapperList?.length !== 0) {
-    //             algoInputEventWrapperList?.sort(
-    //                 (ew1, ew2) => ew1.start.getTime() - ew2.start.getTime()
-    //             );
-    //             input[day.toString() + c] = algoInputEventWrapperList;
-    //             let algoResponse = null;
-    //             if (algoInputEventWrapperList) {
-    //                 algoResponse = getClassSchedule(algoInputEventWrapperList);
-    //             }
-    //             output[day.toString() + c] = algoResponse;
-    //         }
-    //     });
-    // });
-
-    const testEventWrapperList = map.get(1)?.get('WTE');
-    const input = testEventWrapperList;
-    const output = getClassSchedule(testEventWrapperList || []);
+    const output: any[] = [];
+    const input: any[] = [];
+    [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
+        classes.forEach((c) => {
+            const inputEventWrapperList = map.get(day)?.get(c);
+            if (inputEventWrapperList?.length !== 0) {
+                input.push({
+                    day,
+                    class: c,
+                    events: inputEventWrapperList,
+                });
+                if (inputEventWrapperList) {
+                    output.push({
+                        day,
+                        class: c,
+                        intervals: getClassSchedule(inputEventWrapperList),
+                    });
+                }
+            }
+        });
+    });
 
     res.json({
         input,
         output,
     });
-    // });
-    // res.json(Object.fromEntries(bin(eventWrapperList, classes)));
 });
 
 app.listen(port, () => {
