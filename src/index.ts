@@ -79,7 +79,7 @@ app.get(
 app.get(
     "/google/callback",
     passport.authenticate("google", {
-        successRedirect: `${process.env.FE_URL}/protected`,
+        successRedirect: `${process.env.FE_URL}/api/events`,
         failureRedirect: "/auth/failure",
     })
 );
@@ -173,43 +173,36 @@ app.get("/api/events", async (req, res) => {
         (event) => new EventWrapper(event)
     );
 
+    // TODO: eventually, classes will be pulled from a source of truth
     const classes: Set<String> = eventWrapperList.reduce((prev, cur) => {
         cur.classes.forEach((c) => prev.add(c));
         return prev;
     }, new Set<String>());
 
     const map = bin(eventWrapperList, classes);
-    const output: any = {};
-    const input: any = {};
-    [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
-        classes.forEach((c) => {
-            const algoInputEventWrapperList = map.get(day)?.get(c);
-            if (algoInputEventWrapperList?.length !== 0) {
-                algoInputEventWrapperList?.sort(
-                    (ew1, ew2) => ew1.start.getTime() - ew2.start.getTime()
-                );
-                input[day.toString() + c] = algoInputEventWrapperList;
-                let algoResponse = null;
-                if (algoInputEventWrapperList) {
-                    algoResponse = getClassSchedule(algoInputEventWrapperList);
-                }
-                output[day.toString() + c] = algoResponse;
-            }
-        });
-    });
+    // const output: any = {};
+    // const input: any = {};
+    // [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
+    //     classes.forEach((c) => {
+    //         const algoInputEventWrapperList = map.get(day)?.get(c);
+    //         if (algoInputEventWrapperList?.length !== 0) {
+    //             algoInputEventWrapperList?.sort(
+    //                 (ew1, ew2) => ew1.start.getTime() - ew2.start.getTime()
+    //             );
+    //             input[day.toString() + c] = algoInputEventWrapperList;
+    //             let algoResponse = null;
+    //             if (algoInputEventWrapperList) {
+    //                 algoResponse = getClassSchedule(algoInputEventWrapperList);
+    //             }
+    //             output[day.toString() + c] = algoResponse;
+    //         }
+    //     });
+    // });
 
-    // const testEventWrapperList = map
-    //     .get(0)
-    //     ?.get("Intro to Computer Programming");
-    // testEventWrapperList?.sort(
-    //     (ew1, ew2) => ew1.start.getTime() - ew2.start.getTime()
-    // );
+    const testEventWrapperList = map.get(1)?.get('WTE');
+    const input = testEventWrapperList;
+    const output = getClassSchedule(testEventWrapperList || []);
 
-    // let algoResponse = null;
-    // if (testEventWrapperList) {
-    //     algoResponse = getClassSchedule(testEventWrapperList);
-    // }
-    // map.forEach((m) => {
     res.json({
         input,
         output,
