@@ -6,11 +6,19 @@ import session from "express-session";
 import * as dotenv from "dotenv";
 
 import "./auth";
+import { EventWrapper } from "./eventWrapper";
+import { calendar_v3 } from "@googleapis/calendar";
+import Event = calendar_v3.Schema$Event;
+import { getClassSchedule } from "./algo";
+
+// import { eventRouter } from "./events";
 
 dotenv.config();
 
 const app: Express = express();
 const port = process.env.PORT ?? 3001;
+
+// app.use("/api/events", eventRouter);
 
 function isLoggedIn(req: Request, res: Response, next: NextFunction) {
     req.user ? next() : res.sendStatus(401);
@@ -99,6 +107,115 @@ app.get("/api/get_calendars", async (req, res) => {
 
 app.get("/auth/failure", (_, res) => {
     res.send("Failed to log in!");
+});
+
+function bin(
+    eventWrapperList: EventWrapper[],
+    classes: Set<String>
+): Map<number, Map<String, EventWrapper[]>> {
+    // return an object whose keys are days of the week and values
+    // are another object whose keys are classes and values are the events
+    // return:
+    // {
+    //     0: {
+    //         "class1": [EventWrapper(), EventWrapper()...],
+    //         "class2": [EventWrapper(), EventWrapper()...],
+    //     },
+    //     1:...
+    // }
+    const classList = Array.from(classes);
+    const classBin: Map<String, EventWrapper[]> = new Map<
+        String,
+        EventWrapper[]
+    >(classList.map((c) => [c, []]));
+
+    const weekDayBin: Map<number, Map<String, EventWrapper[]>> = new Map<
+        number,
+        Map<String, EventWrapper[]>
+    >(
+        [0, 1, 2, 3, 4, 5, 6].map((day) => [
+            day,
+            new Map<String, EventWrapper[]>(
+                JSON.parse(JSON.stringify(Array.from(classBin)))
+            ),
+        ])
+    );
+
+    eventWrapperList.forEach((eventWrapper) => {
+        const eventWeekDay = eventWrapper.weekDay;
+        eventWrapper.classes.forEach((c) => {
+            weekDayBin.get(eventWeekDay)?.get(c)?.push(eventWrapper);
+        });
+    });
+
+    return weekDayBin;
+}
+
+app.get("/api/events", async (req, res) => {
+    const calendarId = "c_42fl1bgnvouk4hb2q4vc95kl7c@group.calendar.google.com";
+    const startTime = new Date(2022, 7, 20);
+    const endTime = new Date(2022, 7, 29);
+    let url =
+        `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?` +
+        `access_token=${req.user?.accessToken}&` +
+        `timeMin=${startTime.toISOString()}&` +
+        `timeMax=${endTime.toISOString()}`;
+
+    const data = await fetch(url, {
+        method: "GET",
+    });
+
+    // TODO: change this any
+    const eventJson: any = await data.json();
+    const eventList: Event[] = eventJson.items;
+
+    const eventWrapperList: EventWrapper[] = eventList.map(
+        (event) => new EventWrapper(event)
+    );
+
+    const classes: Set<String> = eventWrapperList.reduce((prev, cur) => {
+        cur.classes.forEach((c) => prev.add(c));
+        return prev;
+    }, new Set<String>());
+
+    const map = bin(eventWrapperList, classes);
+    const output: any = {};
+    const input: any = {};
+    [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
+        classes.forEach((c) => {
+            const algoInputEventWrapperList = map.get(day)?.get(c);
+            if (algoInputEventWrapperList?.length !== 0) {
+                algoInputEventWrapperList?.sort(
+                    (ew1, ew2) => ew1.start.getTime() - ew2.start.getTime()
+                );
+                input[day.toString() + c] = algoInputEventWrapperList;
+                let algoResponse = null;
+                if (algoInputEventWrapperList) {
+                    algoResponse = getClassSchedule(algoInputEventWrapperList);
+                }
+                output[day.toString() + c] = algoResponse;
+            }
+        });
+    });
+
+    // const testEventWrapperList = map
+    //     .get(0)
+    //     ?.get("Intro to Computer Programming");
+    // testEventWrapperList?.sort(
+    //     (ew1, ew2) => ew1.start.getTime() - ew2.start.getTime()
+    // );
+
+    // let algoResponse = null;
+    // if (testEventWrapperList) {
+    //     algoResponse = getClassSchedule(testEventWrapperList);
+    // }
+    // map.forEach((m) => {
+    res.json({
+        input,
+        output,
+    });
+    // });
+    // res.json(Object.fromEntries(bin(eventWrapperList, classes)));
 });
 
 app.listen(port, () => {
