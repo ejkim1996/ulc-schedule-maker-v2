@@ -6,13 +6,13 @@ import { Interval } from "../@types/interval";
 // TODO: make interval a class (with get week day getter) and have event wrapper inheret from it?
 export class EventWrapper {
     interval: Interval;
-    classes: String[];
+    classes: string[];
 
-    constructor(start: Date, end: Date, classes: String[]);
+    constructor(start: Date, end: Date, classes: string[]);
 
     constructor(event: Event);
 
-    constructor(startOrEvent?: Date | Event, end?: Date, classes?: String[]) {
+    constructor(startOrEvent?: Date | Event, end?: Date, classes?: string[]) {
         if (startOrEvent instanceof Date && end && classes) {
             this.interval = {
                 start: startOrEvent,

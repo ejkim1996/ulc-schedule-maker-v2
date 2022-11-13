@@ -112,8 +112,8 @@ app.get("/auth/failure", (_, res) => {
 
 function bin(
     eventWrapperList: EventWrapper[],
-    classes: Set<String>
-): Map<number, Map<String, Interval[]>> {
+    classes: Set<string>
+): Map<string, Map<number, Interval[]>> {
     // return an object whose keys are days of the week and values
     // are another object whose keys are classes and values are the events
     // return:
@@ -124,20 +124,16 @@ function bin(
     //     },
     //     1:...
     // }
-    const classList = Array.from(classes);
-    const classBin: Map<String, Interval[]> = new Map<
-        String,
-        Interval[]
-    >(classList.map((c) => [c, []]));
+    const weekDayBin: Map<number, Interval[]> = new Map<number, Interval[]>(
+        [0, 1, 2, 3, 4, 5, 6].map((day) => [day, []])
+    );
 
-    const weekDayBin: Map<number, Map<String, Interval[]>> = new Map<
-        number,
-        Map<String, Interval[]>
-    >(
-        [0, 1, 2, 3, 4, 5, 6].map((day) => [
-            day,
-            new Map<String, Interval[]>(
-                JSON.parse(JSON.stringify(Array.from(classBin)))
+    const classList = Array.from(classes);
+    const classBin: Map<string, Map<number, Interval[]>> = new Map<string, Map<number, Interval[]>>(
+        classList.map((c) => [
+            c,
+            new Map<number, Interval[]>(
+                JSON.parse(JSON.stringify(Array.from(weekDayBin)))
             ),
         ])
     );
@@ -145,11 +141,11 @@ function bin(
     eventWrapperList.forEach((eventWrapper) => {
         const eventWeekDay = eventWrapper.weekDay;
         eventWrapper.classes.forEach((c) => {
-            weekDayBin.get(eventWeekDay)?.get(c)?.push(eventWrapper.interval);
+            classBin.get(c)?.get(eventWeekDay)?.push(eventWrapper.interval);
         });
-    });
+    })
 
-    return weekDayBin;
+    return classBin;
 }
 
 app.get("/api/events", async (req, res) => {
@@ -175,36 +171,28 @@ app.get("/api/events", async (req, res) => {
     );
 
     // TODO: eventually, classes will be pulled from a source of truth
-    const classes: Set<String> = eventWrapperList.reduce((prev, cur) => {
+    const classes: Set<string> = eventWrapperList.reduce((prev, cur) => {
         cur.classes.forEach((c) => prev.add(c));
         return prev;
-    }, new Set<String>());
+    }, new Set<string>());
 
     const map = bin(eventWrapperList, classes);
-    const output: any[] = [];
-    const input: any[] = [];
-    [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
-        classes.forEach((c) => {
-            const inputEventWrapperList = map.get(day)?.get(c);
-            if (inputEventWrapperList?.length !== 0) {
-                input.push({
-                    day,
-                    class: c,
-                    events: inputEventWrapperList,
-                });
-                if (inputEventWrapperList) {
-                    output.push({
-                        day,
-                        class: c,
-                        intervals: getClassSchedule(inputEventWrapperList),
-                    });
-                }
+    const input: Map<String, Map<number, Interval[]>> = new Map(JSON.parse(JSON.stringify(Array.from(map)))); // deep copy of map
+    // const output: Map<String, Map<number, Interval[]>> = map;
+    const output: any = {};
+    classes.forEach((c) => {
+        const classObj: any = {}; // change this any???
+        [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
+            const inputEventWrapperList = map.get(c)?.get(day);
+            if (inputEventWrapperList && inputEventWrapperList.length !== 0) {
+                classObj[day] = getClassSchedule(inputEventWrapperList);
+                // output.get(c)?.set(day, getClassSchedule(inputEventWrapperList));
             }
         });
+        output[c] = classObj;
     });
 
     res.json({
-        input,
         output,
     });
 });
