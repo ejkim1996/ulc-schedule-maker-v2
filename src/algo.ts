@@ -1,12 +1,13 @@
 import { EventWrapper } from "./eventWrapper";
+import { Interval } from "../@types/interval";
 
-export function getClassSchedule(events: EventWrapper[]): EventWrapper[] {
-    if (events.length === 0) {
+export function getClassSchedule(intervals: Interval[]): Interval[] {
+    if (intervals.length === 0) {
         throw new Error('Cannot get schedule for empty array of classes');
     }
-    const eventsClone = events.slice();
-    eventsClone.sort((ew1, ew2) => ew1.start.getTime() - ew2.start.getTime());
-    return getClassScheduleRec(eventsClone);
+    const intervalsClone = intervals.slice();
+    intervalsClone.sort((ew1, ew2) => ew1.start.getTime() - ew2.start.getTime());
+    return getClassScheduleRec(intervalsClone);
 }
 
 /*
@@ -22,12 +23,12 @@ export function getClassSchedule(events: EventWrapper[]): EventWrapper[] {
 /   of the schedule interval(s) pertaining to a specific class. Note that the objects have
 /   an empty classes field; only intended for containing the interval start and finish times.
 */
-function getClassScheduleRec(events: EventWrapper[]): EventWrapper[] {
-    let end: Date = events[0].end; // assumes list is non-empty
-    let start: Date = events[0].start;
+function getClassScheduleRec(intervals: Interval[]): Interval[] {
+    let end: Date = intervals[0].end; // assumes list is non-empty
+    let start: Date = intervals[0].start;
 
-    while (events.length > 0) {
-        const curEvent = events.shift();
+    while (intervals.length > 0) {
+        const curEvent = intervals.shift();
         const curStart = curEvent?.start;
         const curEnd = curEvent?.end;
 
@@ -40,18 +41,17 @@ function getClassScheduleRec(events: EventWrapper[]): EventWrapper[] {
         } else if (curStart <= end && end < curEnd) {
             end = curEnd;
         } else if (curStart > end) {
-            events.unshift(curEvent);
+            intervals.unshift(curEvent);
             break;
         }
         
     }
 
-    let interval: EventWrapper = new EventWrapper(start, end, []);
-    let intervals: EventWrapper[] = [interval];
+    let returnedIntervals: Interval[] = [{ start, end }];
 
-    if (events.length != 0) {
-        intervals = intervals.concat(getClassScheduleRec(events));
+    if (intervals.length != 0) {
+        returnedIntervals = returnedIntervals.concat(getClassScheduleRec(intervals));
     }
 
-    return intervals;
+    return returnedIntervals;
 }

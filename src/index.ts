@@ -10,6 +10,7 @@ import { EventWrapper } from "./eventWrapper";
 import { calendar_v3 } from "@googleapis/calendar";
 import Event = calendar_v3.Schema$Event;
 import { getClassSchedule } from "./algo";
+import { Interval } from "../@types/interval";
 
 // import { eventRouter } from "./events";
 
@@ -112,7 +113,7 @@ app.get("/auth/failure", (_, res) => {
 function bin(
     eventWrapperList: EventWrapper[],
     classes: Set<String>
-): Map<number, Map<String, EventWrapper[]>> {
+): Map<number, Map<String, Interval[]>> {
     // return an object whose keys are days of the week and values
     // are another object whose keys are classes and values are the events
     // return:
@@ -124,18 +125,18 @@ function bin(
     //     1:...
     // }
     const classList = Array.from(classes);
-    const classBin: Map<String, EventWrapper[]> = new Map<
+    const classBin: Map<String, Interval[]> = new Map<
         String,
-        EventWrapper[]
+        Interval[]
     >(classList.map((c) => [c, []]));
 
-    const weekDayBin: Map<number, Map<String, EventWrapper[]>> = new Map<
+    const weekDayBin: Map<number, Map<String, Interval[]>> = new Map<
         number,
-        Map<String, EventWrapper[]>
+        Map<String, Interval[]>
     >(
         [0, 1, 2, 3, 4, 5, 6].map((day) => [
             day,
-            new Map<String, EventWrapper[]>(
+            new Map<String, Interval[]>(
                 JSON.parse(JSON.stringify(Array.from(classBin)))
             ),
         ])
@@ -144,7 +145,7 @@ function bin(
     eventWrapperList.forEach((eventWrapper) => {
         const eventWeekDay = eventWrapper.weekDay;
         eventWrapper.classes.forEach((c) => {
-            weekDayBin.get(eventWeekDay)?.get(c)?.push(eventWrapper);
+            weekDayBin.get(eventWeekDay)?.get(c)?.push(eventWrapper.interval);
         });
     });
 

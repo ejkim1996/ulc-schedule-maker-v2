@@ -1,9 +1,11 @@
 import { calendar_v3 } from "@googleapis/calendar";
 import Event = calendar_v3.Schema$Event;
+import { Interval } from "../@types/interval";
 
+
+// TODO: make interval a class (with get week day getter) and have event wrapper inheret from it?
 export class EventWrapper {
-    start: Date;
-    end: Date;
+    interval: Interval;
     classes: String[];
 
     constructor(start: Date, end: Date, classes: String[]);
@@ -12,8 +14,10 @@ export class EventWrapper {
 
     constructor(startOrEvent?: Date | Event, end?: Date, classes?: String[]) {
         if (startOrEvent instanceof Date && end && classes) {
-            this.start = startOrEvent;
-            this.end = end;
+            this.interval = {
+                start: startOrEvent,
+                end: end,
+            };
             this.classes = classes;
             return;
         }
@@ -29,8 +33,10 @@ export class EventWrapper {
         if (!(startDateTime && endDateTime)) {
             throw new Error("Event has no start or end date/time.");
         }
-        this.start = new Date(startDateTime);
-        this.end = new Date(endDateTime);
+        this.interval = {
+            start: new Date(startDateTime),
+            end: new Date(endDateTime),
+        };
 
         const description = event.description;
         if (!description) {
@@ -44,8 +50,8 @@ export class EventWrapper {
     }
 
     get weekDay() {
-        const startWeekDay: number = this.start.getDay();
-        const endWeekDay: number = this.end.getDay();
+        const startWeekDay: number = this.interval.start.getDay();
+        const endWeekDay: number = this.interval.end.getDay();
         if (startWeekDay !== endWeekDay) {
             throw new Error("Event takes place over more than one day.");
         }
