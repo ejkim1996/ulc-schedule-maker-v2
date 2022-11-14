@@ -1,4 +1,4 @@
-import express, { Express, Request, Response, NextFunction, urlencoded } from "express";
+import express, { Express, Request, Response, NextFunction, urlencoded, response } from "express";
 import path from "path";
 import mongoose from "mongoose";
 import passport from "passport";
@@ -87,7 +87,7 @@ app.get(
 app.get(
     "/google/callback",
     passport.authenticate("google", {
-        successRedirect: `${process.env.FE_URL}/api/test_events`,
+        successRedirect: `${process.env.FE_URL}/testing`,
         failureRedirect: "/auth/failure",
     })
 );
@@ -110,6 +110,36 @@ app.get("/api/calendars", async (req, res) => {
     const rawData = await fetch(url, {
         method: "GET",
     });
+
+    // catch errors
+    const responseStatus = rawData.status;
+    if (responseStatus >= 400) {
+        if (responseStatus === 401) {
+            // invalid credentials
+            res.status(401);
+            res.send({
+                status: "error",
+                message: "Login failed. Invalid Credentials",
+            });
+            return;
+        } else if (responseStatus === 500) {
+            // google server error
+            res.status(500);
+            res.send({
+                status: "error",
+                message: "Google dun goofed."
+            });
+            return;
+        }
+
+        res.status(500);
+        res.send({
+            status: "error",
+            message: "Unknown error while retrieving calendar events."
+        });
+        return;
+    }
+
     const data = await rawData.json();
     const calendarLists: CalendarList[] = data?.items || [];
 
@@ -131,16 +161,6 @@ function bin(
     eventWrapperList: EventWrapper[],
     classes: Set<string>
 ): Map<string, Map<number, Interval[]>> {
-    // return an object whose keys are days of the week and values
-    // are another object whose keys are classes and values are the events
-    // return:
-    // {
-    //     0: {
-    //         "class1": [EventWrapper(), EventWrapper()...],
-    //         "class2": [EventWrapper(), EventWrapper()...],
-    //     },
-    //     1:...
-    // }
     const weekDayBin: Map<number, Interval[]> = new Map<number, Interval[]>(
         [0, 1, 2, 3, 4, 5, 6].map((day) => [day, []])
     );
@@ -189,6 +209,43 @@ app.post("/api/schedule", async (req, res) => {
         const data = await fetch(url, {
             method: "GET",
         });
+
+        // catch errors
+        const responseStatus = data.status;
+        if (responseStatus >= 400) {
+            if (responseStatus === 401) {
+                // invalid credentials
+                res.status(401);
+                res.send({
+                    status: "error",
+                    message: "Login failed. Invalid Credentials",
+                });
+                return;
+            } else if (responseStatus === 404) {
+                // invalid id error
+                res.status(404);
+                res.send({
+                    status: "error",
+                    message: `${label} calendar not found.`
+                });
+                return;
+            } else if (responseStatus === 500) {
+                // google server error
+                res.status(500);
+                res.send({
+                    status: "error",
+                    message: "Google dun goofed."
+                });
+                return;
+            }
+
+            res.status(500);
+            res.send({
+                status: "error",
+                message: "Unknown error while retrieving calendar events."
+            });
+            return;
+        }
     
         // TODO: change this any
         const eventJson: any = await data.json();
@@ -225,7 +282,6 @@ app.post("/api/schedule", async (req, res) => {
                 schedule[c] = [intervalsByDate];
             }
         });
-        console.log(schedule);
     }
     res.json(schedule);
 });
