@@ -1,9 +1,10 @@
-import express, { Express, Request, Response, NextFunction } from "express";
+import express, { Express, Request, Response, NextFunction, urlencoded } from "express";
 import path from "path";
 import mongoose from "mongoose";
 import passport from "passport";
 import session from "express-session";
 import * as dotenv from "dotenv";
+import cors from 'cors';
 
 import "./auth";
 import { EventWrapper } from "./eventWrapper";
@@ -29,6 +30,8 @@ app.use(express.static(path.join(__dirname, "client/build")));
 app.use(session({ secret: process.env.SESSION_SECRET as string }));
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(express.json());
+app.use(cors());
 
 app.get("/", (_, res: Response) => {
     res.send("test");
@@ -147,6 +150,81 @@ function bin(
 
     return classBin;
 }
+
+app.post("/api/schedule", async (req, res) => {
+    // TODO: typescript really doesn't like building objects with
+    //       data as keys, so we're forced to use "any" if
+    //       we want to continue going down this route
+    const schedule: any = {};
+    const { calIdList, stagingWeek } = req.body;
+
+    const startTime = new Date(stagingWeek);
+    const endTime = new Date(startTime);
+    endTime.setDate(startTime.getDate() + 7);
+
+    for (const calId of calIdList) {
+    // calIdList.forEach(async (calId: any) => {
+        const { label, id } = calId;
+        
+        const url =
+            `https://www.googleapis.com/calendar/v3/calendars/${id}/events?` +
+            `access_token=${req.user?.accessToken}&` +
+            `timeMin=${startTime.toISOString()}&` +
+            `timeMax=${endTime.toISOString()}`;
+
+        const data = await fetch(url, {
+            method: "GET",
+        });
+    
+        // TODO: change this any
+        const eventJson: any = await data.json();
+        const eventList: Event[] = eventJson.items;
+    
+        const eventWrapperList: EventWrapper[] = eventList.map(
+            (event) => new EventWrapper(event)
+        );
+
+        const classes: Set<string> = eventWrapperList.reduce((prev, cur) => {
+            cur.classes.forEach((c) => prev.add(c));
+            return prev;
+        }, new Set<string>());
+
+        const map = bin(eventWrapperList, classes);
+
+        classes.forEach((c) => {
+            const intervalsByDate: any[] = [];
+            [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
+                const dateToInterval: any = {};
+                const getClassScheduleInput = map.get(c)?.get(day);
+                if (getClassScheduleInput && getClassScheduleInput.length !== 0) {
+                    dateToInterval[day] = getClassSchedule(getClassScheduleInput);
+                } else {
+                    dateToInterval[day] = [];
+                }
+                intervalsByDate.push(dateToInterval);
+            });
+            const labelToIntervals: any = {};
+            labelToIntervals[label] = intervalsByDate;
+            if (schedule.hasOwnProperty(c)) {
+                schedule[c].push(intervalsByDate);
+            } else {
+                schedule[c] = [intervalsByDate];
+            }
+        });
+        console.log(schedule);
+    }
+    // });
+        // get events
+        // convert to event wrappers
+        // get classes
+        // bin by classes and days
+        // for each class
+            // for each day
+                // if class is already a key in schedule, append to that
+                // otherwise make a new array and add to that
+    // return schedule
+    res.json(schedule);
+});
 
 app.get("/api/events", async (req, res) => {
     const calendarId = "c_42fl1bgnvouk4hb2q4vc95kl7c@group.calendar.google.com";
