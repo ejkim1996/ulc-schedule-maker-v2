@@ -10,10 +10,14 @@ import "./auth";
 import { EventWrapper } from "./eventWrapper";
 import { calendar_v3 } from "@googleapis/calendar";
 import Event = calendar_v3.Schema$Event;
+import CalendarList = calendar_v3.Schema$CalendarListEntry;
 import { getClassSchedule } from "./algo";
 import { Interval } from "../@types/interval";
 
-// import { eventRouter } from "./events";
+interface CalendarInfo {
+    id: string,
+    name: string,
+} // TODO: move this to a type module in @types
 
 dotenv.config();
 
@@ -83,7 +87,7 @@ app.get(
 app.get(
     "/google/callback",
     passport.authenticate("google", {
-        successRedirect: `${process.env.FE_URL}/api/events`,
+        successRedirect: `${process.env.FE_URL}/api/test_events`,
         failureRedirect: "/auth/failure",
     })
 );
@@ -97,16 +101,26 @@ app.get("/api/protected", isLoggedIn, (req, res) => {
     res.json(test);
 });
 
-app.get("/api/get_calendars", async (req, res) => {
+app.get("/api/calendars", async (req, res) => {
     let url =
         "https://www.googleapis.com/calendar/v3/users/me/calendarList?access_token=" +
         req.user?.accessToken;
 
-    const data = await fetch(url, {
+    // TODO: catch errors
+    const rawData = await fetch(url, {
         method: "GET",
     });
+    const data = await rawData.json();
+    const calendarLists: CalendarList[] = data?.items || [];
 
-    res.json(await data.json());
+    const calendarInfos: CalendarInfo[] = calendarLists.map((calendarList) => {
+        return {
+            id: calendarList.id,
+            name: calendarList.summary
+        } as CalendarInfo;
+    });
+
+    res.json(calendarInfos);
 });
 
 app.get("/auth/failure", (_, res) => {
@@ -163,9 +177,9 @@ app.post("/api/schedule", async (req, res) => {
     endTime.setDate(startTime.getDate() + 7);
 
     for (const calId of calIdList) {
-    // calIdList.forEach(async (calId: any) => {
         const { label, id } = calId;
         
+        // TODO: cover error responses
         const url =
             `https://www.googleapis.com/calendar/v3/calendars/${id}/events?` +
             `access_token=${req.user?.accessToken}&` +
@@ -213,20 +227,10 @@ app.post("/api/schedule", async (req, res) => {
         });
         console.log(schedule);
     }
-    // });
-        // get events
-        // convert to event wrappers
-        // get classes
-        // bin by classes and days
-        // for each class
-            // for each day
-                // if class is already a key in schedule, append to that
-                // otherwise make a new array and add to that
-    // return schedule
     res.json(schedule);
 });
 
-app.get("/api/events", async (req, res) => {
+app.get("/api/test_events", async (req, res) => {
     const calendarId = "c_42fl1bgnvouk4hb2q4vc95kl7c@group.calendar.google.com";
     const startTime = new Date(2022, 7, 20);
     const endTime = new Date(2022, 7, 29);
