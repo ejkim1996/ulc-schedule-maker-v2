@@ -1,10 +1,17 @@
-import express, { Express, Request, Response, NextFunction, urlencoded, response } from "express";
+import express, {
+    Express,
+    Request,
+    Response,
+    NextFunction,
+    urlencoded,
+    response,
+} from "express";
 import path from "path";
 import mongoose from "mongoose";
 import passport from "passport";
 import session from "express-session";
 import * as dotenv from "dotenv";
-import cors from 'cors';
+import cors from "cors";
 
 import "./auth";
 import { EventWrapper } from "./eventWrapper";
@@ -15,8 +22,8 @@ import { getClassSchedule } from "./algo";
 import { Interval } from "../@types/interval";
 
 interface CalendarInfo {
-    id: string,
-    name: string,
+    id: string;
+    name: string;
 } // TODO: move this to a type module in @types
 
 dotenv.config();
@@ -87,7 +94,7 @@ app.get(
 app.get(
     "/google/callback",
     passport.authenticate("google", {
-        successRedirect: `${process.env.FE_URL}/testing`,
+        successRedirect: `${process.env.FE_URL}/scheduler`,
         failureRedirect: "/auth/failure",
     })
 );
@@ -127,7 +134,7 @@ app.get("/api/calendars", async (req, res) => {
             res.status(500);
             res.send({
                 status: "error",
-                message: "Google dun goofed."
+                message: "Google dun goofed.",
             });
             return;
         }
@@ -135,7 +142,7 @@ app.get("/api/calendars", async (req, res) => {
         res.status(500);
         res.send({
             status: "error",
-            message: "Unknown error while retrieving calendar events."
+            message: "Unknown error while retrieving calendar events.",
         });
         return;
     }
@@ -146,7 +153,7 @@ app.get("/api/calendars", async (req, res) => {
     const calendarInfos: CalendarInfo[] = calendarLists.map((calendarList) => {
         return {
             id: calendarList.id,
-            name: calendarList.summary
+            name: calendarList.summary,
         } as CalendarInfo;
     });
 
@@ -166,7 +173,10 @@ function bin(
     );
 
     const classList = Array.from(classes);
-    const classBin: Map<string, Map<number, Interval[]>> = new Map<string, Map<number, Interval[]>>(
+    const classBin: Map<string, Map<number, Interval[]>> = new Map<
+        string,
+        Map<number, Interval[]>
+    >(
         classList.map((c) => [
             c,
             new Map<number, Interval[]>(
@@ -180,7 +190,7 @@ function bin(
         eventWrapper.classes.forEach((c) => {
             classBin.get(c)?.get(eventWeekDay)?.push(eventWrapper.interval);
         });
-    })
+    });
 
     return classBin;
 }
@@ -196,9 +206,13 @@ app.post("/api/schedule", async (req, res) => {
     const endTime = new Date(startTime);
     endTime.setDate(startTime.getDate() + 7);
 
+    console.log(req.body);
+    console.log(calIdList);
+    console.log(stagingWeek);
+
     for (const calId of calIdList) {
         const { label, id } = calId;
-        
+
         // TODO: cover error responses
         const url =
             `https://www.googleapis.com/calendar/v3/calendars/${id}/events?` +
@@ -226,7 +240,7 @@ app.post("/api/schedule", async (req, res) => {
                 res.status(404);
                 res.send({
                     status: "error",
-                    message: `${label} calendar not found.`
+                    message: `${label} calendar not found.`,
                 });
                 return;
             } else if (responseStatus === 500) {
@@ -234,7 +248,7 @@ app.post("/api/schedule", async (req, res) => {
                 res.status(500);
                 res.send({
                     status: "error",
-                    message: "Google dun goofed."
+                    message: "Google dun goofed.",
                 });
                 return;
             }
@@ -242,15 +256,15 @@ app.post("/api/schedule", async (req, res) => {
             res.status(500);
             res.send({
                 status: "error",
-                message: "Unknown error while retrieving calendar events."
+                message: "Unknown error while retrieving calendar events.",
             });
             return;
         }
-    
+
         // TODO: change this any
         const eventJson: any = await data.json();
         const eventList: Event[] = eventJson.items;
-    
+
         const eventWrapperList: EventWrapper[] = eventList.map(
             (event) => new EventWrapper(event)
         );
@@ -267,8 +281,13 @@ app.post("/api/schedule", async (req, res) => {
             [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
                 const dateToInterval: any = {};
                 const getClassScheduleInput = map.get(c)?.get(day);
-                if (getClassScheduleInput && getClassScheduleInput.length !== 0) {
-                    dateToInterval[day] = getClassSchedule(getClassScheduleInput);
+                if (
+                    getClassScheduleInput &&
+                    getClassScheduleInput.length !== 0
+                ) {
+                    dateToInterval[day] = getClassSchedule(
+                        getClassScheduleInput
+                    );
                 } else {
                     dateToInterval[day] = [];
                 }
@@ -315,7 +334,9 @@ app.get("/api/test_events", async (req, res) => {
     }, new Set<string>());
 
     const map = bin(eventWrapperList, classes);
-    const input: Map<String, Map<number, Interval[]>> = new Map(JSON.parse(JSON.stringify(Array.from(map)))); // deep copy of map
+    const input: Map<String, Map<number, Interval[]>> = new Map(
+        JSON.parse(JSON.stringify(Array.from(map)))
+    ); // deep copy of map
     // const output: Map<String, Map<number, Interval[]>> = map;
     const output: any = {};
     classes.forEach((c) => {
