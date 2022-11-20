@@ -1,27 +1,27 @@
-import { EventWrapper } from "./eventWrapper";
-import { Interval } from "../@types/interval";
+import { Interval } from "../@types/scheduler";
 
 export function getClassSchedule(intervals: Interval[]): Interval[] {
     if (intervals.length === 0) {
-        throw new Error('Cannot get schedule for empty array of classes');
+        throw new Error("Cannot get schedule for empty array of classes");
     }
     const intervalsClone = intervals.slice();
-    intervalsClone.sort((ew1, ew2) => ew1.start.getTime() - ew2.start.getTime());
+    intervalsClone.sort(
+        (ew1, ew2) => ew1.start.getTime() - ew2.start.getTime()
+    );
     return getClassScheduleRec(intervalsClone);
 }
 
 /*
-/   Constructs a list of the longest interval(s) for which a class is tutored for.
+/   Constructs a list of the longest interval(s) for which a course is tutored for.
 /   Recurses on the remaining elements of the list after one contiguous interval
 /   is constructed to append remaining interval(s). Base case is reached when no 
 /   elements are left. 
 /   
-/   @param A list of EventWrapper objects corresponding to a class on a specific day
+/   @param A list of Interval objects corresponding to a course on a specific day
 /   sorted by start time in ascending order. Must be nonempty
 /   
-/   @return A list of EventWrapper objects that contain start and end times (Date objects)
-/   of the schedule interval(s) pertaining to a specific class. Note that the objects have
-/   an empty classes field; only intended for containing the interval start and finish times.
+/   @return A list of Interval objects that contain start and end times (Date objects)
+/   of the schedule interval(s) pertaining to a specific course. 
 */
 function getClassScheduleRec(intervals: Interval[]): Interval[] {
     let end: Date = intervals[0].end; // assumes list is non-empty
@@ -33,7 +33,7 @@ function getClassScheduleRec(intervals: Interval[]): Interval[] {
         const curEnd = curEvent?.end;
 
         if (!(curStart && curEnd)) {
-            throw new Error('Event missing start or end');
+            throw new Error("Event missing start or end");
         }
 
         if (start.getTime() === curStart?.getTime() && end < curEnd) {
@@ -44,13 +44,14 @@ function getClassScheduleRec(intervals: Interval[]): Interval[] {
             intervals.unshift(curEvent);
             break;
         }
-        
     }
 
-    let returnedIntervals: Interval[] = [{ start, end }];
+    let returnedIntervals: Interval[] = [new Interval(start, end)];
 
     if (intervals.length != 0) {
-        returnedIntervals = returnedIntervals.concat(getClassScheduleRec(intervals));
+        returnedIntervals = returnedIntervals.concat(
+            getClassScheduleRec(intervals)
+        );
     }
 
     return returnedIntervals;

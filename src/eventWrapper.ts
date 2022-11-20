@@ -1,7 +1,6 @@
 import { calendar_v3 } from "@googleapis/calendar";
 import Event = calendar_v3.Schema$Event;
-import { Interval } from "../@types/interval";
-
+import { Interval } from "../@types/scheduler";
 
 // TODO: make interval a class (with get week day getter) and have event wrapper inheret from it?
 export class EventWrapper {
@@ -14,10 +13,7 @@ export class EventWrapper {
 
     constructor(startOrEvent?: Date | Event, end?: Date, classes?: string[]) {
         if (startOrEvent instanceof Date && end && classes) {
-            this.interval = {
-                start: startOrEvent,
-                end: end,
-            };
+            this.interval = new Interval(startOrEvent, end);
             this.classes = classes;
             return;
         }
@@ -33,10 +29,10 @@ export class EventWrapper {
         if (!(startDateTime && endDateTime)) {
             throw new Error("Event has no start or end date/time.");
         }
-        this.interval = {
-            start: new Date(startDateTime),
-            end: new Date(endDateTime),
-        };
+        this.interval = new Interval(
+            new Date(startDateTime),
+            new Date(endDateTime)
+        );
 
         const description = event.description;
         if (!description) {
