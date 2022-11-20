@@ -234,6 +234,7 @@ function bin(
             }
         });
     });
+    return binnedSchedule;
 }
 
 // function bin(
@@ -268,21 +269,30 @@ function bin(
 // }
 
 app.post("/api/schedule", async (req, res) => {
-    const schedule: Schedule = [];
     const {
-        calIdList,
+        calendars: calInfoList,
         stagingWeek,
-    }: { calIdList: CalendarInfo[]; stagingWeek: Date } = req.body;
+    }: { calendars: CalendarInfo[]; stagingWeek: Date } = req.body;
 
     const startTime = new Date(stagingWeek);
     const endTime = new Date(startTime);
     endTime.setDate(startTime.getDate() + 7);
 
     console.log(req.body);
-    console.log(calIdList);
+    console.log(calInfoList);
     console.log(stagingWeek);
 
-    for (const calId of calIdList) {
+    const locations = calInfoList.map((calInfo: CalendarInfo) => calInfo.name);
+    const courseCatalog: CourseCatalog = [
+        new CourseInfo("WTE"),
+        new CourseInfo("Linear Algebra"),
+        new CourseInfo("Discrete Math"),
+        new CourseInfo("Data Structures"),
+        new CourseInfo("Intro to Computer Programming"),
+    ]; //TODO: get from source of truth
+    const allShifts: Shift[] = [];
+
+    for (const calId of calInfoList) {
         const { name, id }: { name: string; id: string } = calId;
 
         const url =
@@ -340,99 +350,48 @@ app.post("/api/schedule", async (req, res) => {
         const eventJson: any = await data.json();
         const eventList: Event[] = eventJson.items;
 
-        const shiftsAtLocation: Shift[] = eventList.map(
-            (event) => new Shift(event, name)
-        );
-
-        const eventWrapperList: EventWrapper[] = eventList.map(
-            (event) => new EventWrapper(event)
-        );
-
-        const classes: Set<string> = eventWrapperList.reduce((prev, cur) => {
-            cur.classes.forEach((c) => prev.add(c));
-            return prev;
-        }, new Set<string>());
-
-        const map = bin(eventWrapperList, classes);
-
-        classes.forEach((c) => {
-            const intervalsByDate: any[] = [];
-            [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
-                const dateToInterval: any = {};
-                const getClassScheduleInput = map.get(c)?.get(day);
-                if (
-                    getClassScheduleInput &&
-                    getClassScheduleInput.length !== 0
-                ) {
-                    dateToInterval[day] = getClassSchedule(
-                        getClassScheduleInput
-                    );
-                } else {
-                    dateToInterval[day] = [];
-                }
-                intervalsByDate.push(dateToInterval);
-            });
-            const labelToIntervals: any = {};
-            labelToIntervals[label] = intervalsByDate;
-            if (schedule.hasOwnProperty(c)) {
-                schedule[c].push(intervalsByDate);
-            } else {
-                schedule[c] = [intervalsByDate];
-            }
+        eventList.forEach((event) => {
+            allShifts.push(new Shift(event, name));
         });
     }
-    res.json(schedule);
-});
 
-app.get("/api/test_events", async (req, res) => {
-    const calendarId = "c_42fl1bgnvouk4hb2q4vc95kl7c@group.calendar.google.com";
-    const startTime = new Date(2022, 7, 20);
-    const endTime = new Date(2022, 7, 29);
-    let url =
-        `https://www.googleapis.com/calendar/v3/calendars/${calendarId}/events?` +
-        `access_token=${req.user?.accessToken}&` +
-        `timeMin=${startTime.toISOString()}&` +
-        `timeMax=${endTime.toISOString()}`;
+    const schedule: Schedule = bin(courseCatalog, locations, allShifts);
 
-    const data = await fetch(url, {
-        method: "GET",
-    });
-
-    // TODO: change this any
-    const eventJson: any = await data.json();
-    const eventList: Event[] = eventJson.items;
-
-    const eventWrapperList: EventWrapper[] = eventList.map(
-        (event) => new EventWrapper(event)
-    );
-
-    // TODO: eventually, classes will be pulled from a source of truth
-    const classes: Set<string> = eventWrapperList.reduce((prev, cur) => {
-        cur.classes.forEach((c) => prev.add(c));
-        return prev;
-    }, new Set<string>());
-
-    const map = bin(eventWrapperList, classes);
-    const input: Map<String, Map<number, Interval[]>> = new Map(
-        JSON.parse(JSON.stringify(Array.from(map)))
-    ); // deep copy of map
-    // const output: Map<String, Map<number, Interval[]>> = map;
-    const output: any = {};
-    classes.forEach((c) => {
-        const classObj: any = {}; // change this any???
-        [0, 1, 2, 3, 4, 5, 6].forEach((day) => {
-            const inputEventWrapperList = map.get(c)?.get(day);
-            if (inputEventWrapperList && inputEventWrapperList.length !== 0) {
-                classObj[day] = getClassSchedule(inputEventWrapperList);
-                // output.get(c)?.set(day, getClassSchedule(inputEventWrapperList));
-            }
+    courseCatalog.forEach((courseInfo) => {
+        locations.forEach((location) => {
+            [0, 1, 2, 3, 4, 5, 6].forEach((weekDay) => {
+                const courseSchedule = schedule.find((courseSchedule) => {
+                    return (
+                        courseSchedule.courseInfo.abbreviation ===
+                        courseInfo.abbreviation
+                    );
+                });
+                if (!courseSchedule) {
+                    return;
+                }
+                const locationSchedule = courseSchedule.locationSchedules.find(
+                    (locationSchedule) => {
+                        return locationSchedule.location === location;
+                    }
+                );
+                if (!locationSchedule) {
+                    return;
+                }
+                const dailySchedule = locationSchedule.dailySchedules.find(
+                    (dailySchedule) => {
+                        return dailySchedule.weekDay === weekDay;
+                    }
+                );
+                if (dailySchedule) {
+                    dailySchedule.intervals = getClassSchedule(
+                        dailySchedule.intervals
+                    );
+                }
+            });
         });
-        output[c] = classObj;
     });
 
-    res.json({
-        output,
-    });
+    res.json(schedule);
 });
 
 app.listen(port, () => {

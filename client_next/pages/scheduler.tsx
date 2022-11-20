@@ -10,6 +10,8 @@ import { Disclosure } from "@headlessui/react";
 import {
     ApiScheduleRequest,
     CalendarInfo,
+    CourseSchedule,
+    Interval,
     Schedule,
 } from "../../@types/scheduler";
 
@@ -18,6 +20,88 @@ interface ScheduleRep {
     uHallString: string;
     arcString: String;
 }
+
+type Props = {
+    course: CourseSchedule;
+};
+
+const Group: React.FC<Props> = ({ course }) => {
+    type LocationString = {
+        location: string;
+        schedule: JSX.Element[];
+    };
+
+    const dayMap = new Map<number, string>([
+        [0, "Sunday"],
+        [1, "Monday"],
+        [2, "Tuesday"],
+        [3, "Wednesday"],
+        [4, "Thursday"],
+        [5, "Friday"],
+        [6, "Saturday"],
+    ]);
+
+    const courseName = course.courseInfo.abbreviation;
+
+    const locationStrings: LocationString[] = course.locationSchedules.map(
+        (ls) => {
+            const scheduleBlock = ls.dailySchedules.map((ds) => {
+                const intervalString = ds.intervals.reduce(
+                    (prev: string, curr: Interval) => {
+                        const startString = curr.start.toLocaleTimeString();
+                        const endString = curr.end.toLocaleTimeString();
+
+                        return prev + `${startString} - ${endString}`;
+                    },
+                    ""
+                );
+
+                return (
+                    <li>
+                        {dayMap.get(ds.weekDay)}: {intervalString}
+                    </li>
+                );
+            });
+
+            return {
+                location: ls.location,
+                schedule: scheduleBlock,
+            };
+        }
+    );
+
+    const locationJsx = locationStrings.reduce(
+        (prev: JSX.Element, curr: LocationString) => {
+            const newJsx = (
+                <>
+                    <h3 className="font-bold">{curr.location}</h3>
+                    <ul>{curr.schedule}</ul>
+                </>
+            );
+
+            return (
+                <>
+                    {prev}
+                    {newJsx}
+                </>
+            );
+        },
+        <></>
+    );
+
+    return (
+        <>
+            <Disclosure key={courseName}>
+                <Disclosure.Button className="flex w-full justify-between rounded-lg bg-purple-100 px-4 py-2 text-left text-sm font-medium text-purple-900 hover:bg-purple-200 focus:outline-none focus-visible:ring focus-visible:ring-purple-500 focus-visible:ring-opacity-75">
+                    {courseName}
+                </Disclosure.Button>
+                <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-gray-500">
+                    {locationJsx}
+                </Disclosure.Panel>
+            </Disclosure>
+        </>
+    );
+};
 
 const Scheduler: NextPage = () => {
     const [calendars, setCalendars] = useState<CalendarInfo[]>([]);
@@ -79,14 +163,14 @@ const Scheduler: NextPage = () => {
             body: JSON.stringify(reqBody),
         });
 
-        const output = await res.json();
+        const output = await res;
 
-        const schedules = makeText(output);
+        console.log(output);
 
-        setSchedules(schedules);
+        // const schedules = makeText(output);
+
+        // setSchedules(schedules);
     };
-
-    const;
 
     // const makeText = (res: any) => {
     //     const schedules: ScheduleRep[] = [];
@@ -177,19 +261,7 @@ const Scheduler: NextPage = () => {
     });
 
     const schedulesJs = schedules.map((s) => {
-        return (
-            <Disclosure key={s.className}>
-                <Disclosure.Button className="flex w-full justify-between rounded-lg bg-purple-100 px-4 py-2 text-left text-sm font-medium text-purple-900 hover:bg-purple-200 focus:outline-none focus-visible:ring focus-visible:ring-purple-500 focus-visible:ring-opacity-75">
-                    {s.className}
-                </Disclosure.Button>
-                <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-gray-500">
-                    <h3 className="font-bold">ARC</h3>
-                    {s.arcString}
-                    <h3 className="font-bold">UHall</h3>
-                    {s.uHallString}
-                </Disclosure.Panel>
-            </Disclosure>
-        );
+        return Group({ course: s });
     });
 
     const form = (

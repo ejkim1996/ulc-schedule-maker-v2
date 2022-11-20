@@ -24,9 +24,7 @@ interface CourseInfoInterface {
 }
 
 export class CourseInfo implements CourseInfoInterface {
-    constructor(abbreviation) {
-        this.abbreviation = abbreviation;
-    }
+    constructor(public abbreviation: string) {}
 
     // this is our current implementation
     matchScore(courseGiven: string): number {
@@ -36,10 +34,12 @@ export class CourseInfo implements CourseInfoInterface {
 
 export type CourseCatalog = CourseInfo[];
 
+type DayNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6;
+
 interface IntervalInterface {
     start: Date;
     end: Date;
-    readonly weekDay: 0 | 1 | 2 | 3 | 4 | 5 | 6;
+    readonly weekDay: DayNumber;
 }
 
 export class Interval implements IntervalInterface {
@@ -54,7 +54,7 @@ export class Interval implements IntervalInterface {
         if (startWeekDay !== endWeekDay) {
             throw new Error("Event takes place over more than one day.");
         }
-        return startWeekDay;
+        return startWeekDay as DayNumber;
     }
 }
 
@@ -62,22 +62,26 @@ export class Shift extends Interval {
     // the names of the courses the tutor is available to tutor
     // given in the ulc abbreviation and may contain input errors
     // TODO: i'm not really sure about the naming of this property
-    coursesGiven: string[];
+    coursesGiven: string[] = [];
     location: string;
 
     constructor(event: Event, location: string) {
         // NOTE: we only need a single contructor now because EventWrapper
         // 		 is no longer an alias for a classless interval
-        const startDateTime = event.start?.dateTime;
-        const endDateTime = event.end?.dateTime;
 
-        if (!(startDateTime && endDateTime)) {
+        const startString = event.start?.dateTime;
+        const endString = event.end?.dateTime;
+
+        if (!(startString && endString)) {
             throw new Error("Event has no start or end date/time.");
         }
 
+        const startDateTime = new Date(startString);
+        const endDateTime = new Date(endString);
+
         super(startDateTime, endDateTime);
         this.location = location;
-        parseCourses(event);
+        this.parseCourses(event);
     }
 
     private parseCourses(event: Event) {
@@ -100,7 +104,7 @@ export class Shift extends Interval {
 // over the course of a day
 export interface DailySchedule {
     weekDay: 0 | 1 | 2 | 3 | 4 | 5 | 6;
-    intervals: Intervals[];
+    intervals: Interval[];
 }
 
 // describes the schedule (of one specific course) for a given location
@@ -120,32 +124,42 @@ export interface CourseSchedule {
 // the response from POST /api/schedule will be of type Schedule
 export type Schedule = CourseSchedule[];
 
+enum ApiStatus {
+    Success = "success",
+    Fail = "fail",
+    Error = "error",
+}
+
 // if status is success or fail, data must exist
 // if status is error, message must exist and data is optional
 // schema borrowed from jsend: https://github.com/omniti-labs/jsend
 interface ApiResponseInterface {
-    status: "success" | "fail" | "error";
+    status: ApiStatus;
     data?: any;
     message?: string;
 }
 
-class ApiSuccessResponse implements ApiResponseInterface {
-    constructor(data: any) {
-        this.status = "success";
+export class ApiSuccessResponse implements ApiResponseInterface {
+    status = ApiStatus.Success;
+
+    constructor(public data: any) {
         this.data = data;
     }
 }
 
-class ApiFailResponse implements ApiResponseInterface {
-    constructor(data: any) {
-        this.status = "fail";
+export class ApiFailResponse implements ApiResponseInterface {
+    status = ApiStatus.Fail;
+
+    constructor(public data: any) {
         this.data = data;
     }
 }
 
-class ApiErrorResponse implements ApiResponseInterface {
-    constructor(error: string | Error, data?: any) {
-        this.status = "error";
+export class ApiErrorResponse implements ApiResponseInterface {
+    status = ApiStatus.Error;
+    message: string;
+
+    constructor(public error: string | Error, public data?: any) {
         if (error instanceof Error) {
             this.message = error.message;
         } else {
@@ -157,7 +171,7 @@ class ApiErrorResponse implements ApiResponseInterface {
     }
 }
 
-interface ApiScheduleRequest {
+export interface ApiScheduleRequest {
     calendars: CalendarInfo[];
     stagingWeek: Date; // date of week's Sunday
 }
