@@ -7,10 +7,11 @@ import "react-datepicker/dist/react-datepicker.css";
 
 import { Disclosure } from "@headlessui/react";
 
-interface CalendarRep {
-    id: string;
-    name: string;
-}
+import {
+    ApiScheduleRequest,
+    CalendarInfo,
+    Schedule,
+} from "../../@types/scheduler";
 
 interface ScheduleRep {
     className: string;
@@ -19,14 +20,12 @@ interface ScheduleRep {
 }
 
 const Scheduler: NextPage = () => {
-    const [calendars, setCalendars] = useState<CalendarRep[]>(
-        [] as CalendarRep[]
-    );
-    const [selectedArc, setSelectedArc] = useState<CalendarRep>();
-    const [selectedUHall, setSelectedUHall] = useState<CalendarRep>();
+    const [calendars, setCalendars] = useState<CalendarInfo[]>([]);
+    const [selectedArc, setSelectedArc] = useState<CalendarInfo>();
+    const [selectedUHall, setSelectedUHall] = useState<CalendarInfo>();
     const [stagingDate, setStagingDate] = useState(new Date());
 
-    const [schedules, setSchedules] = useState<ScheduleRep[]>([]);
+    const [schedules, setSchedules] = useState<Schedule>([]);
 
     useEffect(() => {
         fetchCalendars();
@@ -36,30 +35,36 @@ const Scheduler: NextPage = () => {
         const res = await fetch("/api/calendars", {
             method: "GET",
         });
-        const data = await res.json();
+        const data: CalendarInfo[] = await res.json();
         setCalendars(data);
     }
 
-    const handleArc = (cal: CalendarRep) => {
+    const handleArc = (cal: CalendarInfo) => {
         setSelectedArc(cal);
     };
 
-    const handleUHall = (cal: CalendarRep) => {
+    const handleUHall = (cal: CalendarInfo) => {
         setSelectedUHall(cal);
     };
 
     const handleGo = async () => {
-        const reqBody: any = {
-            calIdList: [
-                {
-                    label: "ARC",
-                    id: selectedArc?.id,
-                },
-                {
-                    label: "UHall",
-                    id: selectedUHall?.id,
-                },
-            ],
+        if (!selectedArc || !selectedUHall) {
+            return;
+        }
+
+        const calList: CalendarInfo[] = [
+            {
+                id: selectedArc.id,
+                name: "ARC",
+            },
+            {
+                id: selectedUHall.id,
+                name: "UHall",
+            },
+        ];
+
+        const reqBody: ApiScheduleRequest = {
+            calendars: calList,
             stagingWeek: stagingDate,
         };
 
@@ -81,63 +86,65 @@ const Scheduler: NextPage = () => {
         setSchedules(schedules);
     };
 
-    const makeText = (res: any) => {
-        const schedules: ScheduleRep[] = [];
+    const;
 
-        for (const className in res) {
-            const days = [
-                "Sunday",
-                "Monday",
-                "Tuesday",
-                "Wednesday",
-                "Thursday",
-                "Friday",
-                "Saturday",
-            ];
+    // const makeText = (res: any) => {
+    //     const schedules: ScheduleRep[] = [];
 
-            const arc: any = res[className][0];
-            const uhall: any = res[className][1];
+    //     for (const className in res) {
+    //         const days = [
+    //             "Sunday",
+    //             "Monday",
+    //             "Tuesday",
+    //             "Wednesday",
+    //             "Thursday",
+    //             "Friday",
+    //             "Saturday",
+    //         ];
 
-            let arcString = "";
-            for (const [i, day] of arc.entries()) {
-                const dayName = days[i];
-                let out = `${dayName} `;
-                for (const interval of day[i]) {
-                    out += `${new Date(
-                        interval.start
-                    ).toLocaleTimeString()} - ${new Date(
-                        interval.end
-                    ).toLocaleTimeString()}; `;
-                }
-                arcString += out + "\n";
-            }
+    //         const arc: any = res[className][0];
+    //         const uhall: any = res[className][1];
 
-            let uHallString = "";
-            for (const [i, day] of uhall.entries()) {
-                const dayName = days[i];
-                let out = `${dayName} `;
-                for (const interval of day[i]) {
-                    out += `${new Date(
-                        interval.start
-                    ).toLocaleTimeString()} - ${new Date(
-                        interval.end
-                    ).toLocaleTimeString()}; `;
-                }
-                uHallString += out + "\n";
-            }
+    //         let arcString = "";
+    //         for (const [i, day] of arc.entries()) {
+    //             const dayName = days[i];
+    //             let out = `${dayName} `;
+    //             for (const interval of day[i]) {
+    //                 out += `${new Date(
+    //                     interval.start
+    //                 ).toLocaleTimeString()} - ${new Date(
+    //                     interval.end
+    //                 ).toLocaleTimeString()}; `;
+    //             }
+    //             arcString += out + "\n";
+    //         }
 
-            const schedule: ScheduleRep = {
-                className: className,
-                uHallString: uHallString,
-                arcString: arcString,
-            };
+    //         let uHallString = "";
+    //         for (const [i, day] of uhall.entries()) {
+    //             const dayName = days[i];
+    //             let out = `${dayName} `;
+    //             for (const interval of day[i]) {
+    //                 out += `${new Date(
+    //                     interval.start
+    //                 ).toLocaleTimeString()} - ${new Date(
+    //                     interval.end
+    //                 ).toLocaleTimeString()}; `;
+    //             }
+    //             uHallString += out + "\n";
+    //         }
 
-            schedules.push(schedule);
-        }
+    //         const schedule: ScheduleRep = {
+    //             className: className,
+    //             uHallString: uHallString,
+    //             arcString: arcString,
+    //         };
 
-        console.log(schedules);
-        return schedules;
-    };
+    //         schedules.push(schedule);
+    //     }
+
+    //     console.log(schedules);
+    //     return schedules;
+    // };
 
     const calendarList = calendars.map((cal: any) => {
         return (

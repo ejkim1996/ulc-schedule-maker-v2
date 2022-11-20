@@ -144,7 +144,7 @@ class ApiFailResponse implements ApiResponseInterface {
 }
 
 class ApiErrorResponse implements ApiResponseInterface {
-    constructor(error: string | Error, data: any) {
+    constructor(error: string | Error, data?: any) {
         this.status = "error";
         if (error instanceof Error) {
             this.message = error.message;

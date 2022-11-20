@@ -14,17 +14,23 @@ import * as dotenv from "dotenv";
 import cors from "cors";
 
 import "./auth";
-import { EventWrapper } from "./eventWrapper";
 import { calendar_v3 } from "@googleapis/calendar";
 import Event = calendar_v3.Schema$Event;
 import CalendarList = calendar_v3.Schema$CalendarListEntry;
 import { getClassSchedule } from "./algo";
-import { Interval } from "../@types/interval";
-
-interface CalendarInfo {
-    id: string;
-    name: string;
-} // TODO: move this to a type module in @types
+import {
+    Interval,
+    CalendarInfo,
+    Schedule,
+    ApiErrorResponse,
+    ApiFailResponse,
+    CourseCatalog,
+    Shift,
+    CourseInfo,
+    LocationSchedule,
+    DailySchedule,
+    CourseSchedule,
+} from "../@types/scheduler";
 
 dotenv.config();
 
@@ -124,26 +130,21 @@ app.get("/api/calendars", async (req, res) => {
         if (responseStatus === 401) {
             // invalid credentials
             res.status(401);
-            res.send({
-                status: "error",
-                message: "Login failed. Invalid Credentials",
-            });
+            res.send(new ApiErrorResponse("Login failed. Invalid Credentials"));
             return;
         } else if (responseStatus === 500) {
             // google server error
             res.status(500);
-            res.send({
-                status: "error",
-                message: "Google dun goofed.",
-            });
+            res.send(new ApiErrorResponse("Google dun goofed."));
             return;
         }
 
         res.status(500);
-        res.send({
-            status: "error",
-            message: "Unknown error while retrieving calendar events.",
-        });
+        res.send(
+            new ApiErrorResponse(
+                "Unknown error while retrieving calendar events."
+            )
+        );
         return;
     }
 
@@ -161,46 +162,117 @@ app.get("/api/calendars", async (req, res) => {
 });
 
 app.get("/auth/failure", (_, res) => {
-    res.send("Failed to log in!");
+    res.status(403);
+    res.send(
+        new ApiFailResponse(
+            "Failed to log in. Navigate to /login and try again."
+        )
+    );
 });
 
 function bin(
-    eventWrapperList: EventWrapper[],
-    classes: Set<string>
-): Map<string, Map<number, Interval[]>> {
-    const weekDayBin: Map<number, Interval[]> = new Map<number, Interval[]>(
-        [0, 1, 2, 3, 4, 5, 6].map((day) => [day, []])
-    );
-
-    const classList = Array.from(classes);
-    const classBin: Map<string, Map<number, Interval[]>> = new Map<
-        string,
-        Map<number, Interval[]>
-    >(
-        classList.map((c) => [
-            c,
-            new Map<number, Interval[]>(
-                JSON.parse(JSON.stringify(Array.from(weekDayBin)))
-            ),
-        ])
-    );
-
-    eventWrapperList.forEach((eventWrapper) => {
-        const eventWeekDay = eventWrapper.weekDay;
-        eventWrapper.classes.forEach((c) => {
-            classBin.get(c)?.get(eventWeekDay)?.push(eventWrapper.interval);
+    courses: CourseCatalog,
+    locations: string[],
+    shifts: Shift[]
+): Schedule {
+    // create empty schedule
+    const binnedSchedule: Schedule = [];
+    courses.forEach((course: CourseInfo) => {
+        const courseSchedule: CourseSchedule = {
+            courseInfo: course,
+            locationSchedules: [],
+        };
+        locations.forEach((location: string) => {
+            const locationSchedule: LocationSchedule = {
+                location,
+                dailySchedules: [],
+            };
+            [0, 1, 2, 3, 4, 5, 6].forEach((weekDay: number) => {
+                locationSchedule.dailySchedules.push({
+                    weekDay: weekDay as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+                    intervals: [],
+                });
+            });
+            courseSchedule.locationSchedules.push(locationSchedule);
         });
+        binnedSchedule.push(courseSchedule);
     });
 
-    return classBin;
+    // populate the schedule with the relevant intervals
+    shifts.forEach((shift: Shift) => {
+        shift.coursesGiven.forEach((courseGiven: string) => {
+            const relevantCourseSchedule = binnedSchedule.find(
+                (courseSchedule: CourseSchedule) => {
+                    return (
+                        courseSchedule.courseInfo.matchScore(courseGiven) > 0.9
+                    ); // TODO: consider the matchString  threshold
+                }
+            );
+            if (!relevantCourseSchedule) {
+                return;
+            }
+            const relevantLocationSchedule =
+                relevantCourseSchedule.locationSchedules.find(
+                    (locationSchedule: LocationSchedule) => {
+                        return shift.location === locationSchedule.location;
+                    }
+                );
+            if (!relevantLocationSchedule) {
+                return;
+            }
+            const relevantDailySchedule =
+                relevantLocationSchedule.dailySchedules.find(
+                    (dailySchedule: DailySchedule) => {
+                        return shift.weekDay === dailySchedule.weekDay;
+                    }
+                );
+            if (relevantDailySchedule) {
+                relevantDailySchedule.intervals.push(
+                    new Interval(shift.start, shift.end)
+                );
+                // TODO: can we just have shift.interval? maybe it doesn't need to extend
+            }
+        });
+    });
 }
 
+// function bin(
+//     eventWrapperList: EventWrapper[],
+//     classes: Set<string>
+// ): Map<string, Map<number, Interval[]>> {
+//     const weekDayBin: Map<number, Interval[]> = new Map<number, Interval[]>(
+//         [0, 1, 2, 3, 4, 5, 6].map((day) => [day, []])
+//     );
+
+//     const classList = Array.from(classes);
+//     const classBin: Map<string, Map<number, Interval[]>> = new Map<
+//         string,
+//         Map<number, Interval[]>
+//     >(
+//         classList.map((c) => [
+//             c,
+//             new Map<number, Interval[]>(
+//                 JSON.parse(JSON.stringify(Array.from(weekDayBin)))
+//             ),
+//         ])
+//     );
+
+//     eventWrapperList.forEach((eventWrapper) => {
+//         const eventWeekDay = eventWrapper.weekDay;
+//         eventWrapper.classes.forEach((c) => {
+//             classBin.get(c)?.get(eventWeekDay)?.push(eventWrapper.interval);
+//         });
+//     });
+
+//     return classBin;
+// }
+
 app.post("/api/schedule", async (req, res) => {
-    // TODO: typescript really doesn't like building objects with
-    //       data as keys, so we're forced to use "any" if
-    //       we want to continue going down this route
-    const schedule: any = {};
-    const { calIdList, stagingWeek } = req.body;
+    const schedule: Schedule = [];
+    const {
+        calIdList,
+        stagingWeek,
+    }: { calIdList: CalendarInfo[]; stagingWeek: Date } = req.body;
 
     const startTime = new Date(stagingWeek);
     const endTime = new Date(startTime);
@@ -211,9 +283,8 @@ app.post("/api/schedule", async (req, res) => {
     console.log(stagingWeek);
 
     for (const calId of calIdList) {
-        const { label, id } = calId;
+        const { name, id }: { name: string; id: string } = calId;
 
-        // TODO: cover error responses
         const url =
             `https://www.googleapis.com/calendar/v3/calendars/${id}/events?` +
             `access_token=${req.user?.accessToken}&` +
@@ -230,40 +301,48 @@ app.post("/api/schedule", async (req, res) => {
             if (responseStatus === 401) {
                 // invalid credentials
                 res.status(401);
-                res.send({
-                    status: "error",
-                    message: "Login failed. Invalid Credentials",
-                });
+                res.send(
+                    new ApiFailResponse(
+                        "Invalid Credentials. Navigate to /login and login through Google again."
+                    )
+                );
                 return;
             } else if (responseStatus === 404) {
                 // invalid id error
                 res.status(404);
-                res.send({
-                    status: "error",
-                    message: `${label} calendar not found.`,
-                });
+                res.send(
+                    new ApiFailResponse(
+                        `${name} calendar not found. Double check that your calendars are not deleted.`
+                    )
+                );
                 return;
             } else if (responseStatus === 500) {
                 // google server error
                 res.status(500);
-                res.send({
-                    status: "error",
-                    message: "Google dun goofed.",
-                });
+                res.send(
+                    new ApiErrorResponse(
+                        "Google backend error. Please try again in a few minutes."
+                    )
+                );
                 return;
             }
 
             res.status(500);
-            res.send({
-                status: "error",
-                message: "Unknown error while retrieving calendar events.",
-            });
+            res.send(
+                new ApiErrorResponse(
+                    "Unknown error while retrieving calendar events."
+                )
+            );
             return;
         }
 
         // TODO: change this any
         const eventJson: any = await data.json();
         const eventList: Event[] = eventJson.items;
+
+        const shiftsAtLocation: Shift[] = eventList.map(
+            (event) => new Shift(event, name)
+        );
 
         const eventWrapperList: EventWrapper[] = eventList.map(
             (event) => new EventWrapper(event)
