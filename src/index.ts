@@ -158,17 +158,17 @@ app.get("/api/calendars", async (req, res) => {
         if (responseStatus === 401) {
             // invalid credentials
             res.status(401);
-            res.send(new ApiErrorResponse("Login failed. Invalid Credentials"));
+            res.json(new ApiErrorResponse("Login failed. Invalid Credentials"));
             return;
         } else if (responseStatus === 500) {
             // google server error
             res.status(500);
-            res.send(new ApiErrorResponse("Google dun goofed."));
+            res.json(new ApiErrorResponse("Google dun goofed."));
             return;
         }
 
         res.status(500);
-        res.send(
+        res.json(
             new ApiErrorResponse(
                 "Unknown error while retrieving calendar events."
             )
@@ -191,7 +191,7 @@ app.get("/api/calendars", async (req, res) => {
 
 app.get("/auth/failure", (_, res) => {
     res.status(403);
-    res.send(
+    res.json(
         new ApiFailResponse(
             "Failed to log in. Navigate to /login and try again."
         )
@@ -332,7 +332,7 @@ app.post("/api/schedule", async (req, res) => {
             if (responseStatus === 401) {
                 // invalid credentials
                 res.status(401);
-                res.send(
+                res.json(
                     new ApiFailResponse(
                         "Invalid Credentials. Navigate to /login and login through Google again."
                     )
@@ -341,7 +341,7 @@ app.post("/api/schedule", async (req, res) => {
             } else if (responseStatus === 404) {
                 // invalid id error
                 res.status(404);
-                res.send(
+                res.json(
                     new ApiFailResponse(
                         `${name} calendar not found. Double check that your calendars are not deleted.`
                     )
@@ -350,7 +350,7 @@ app.post("/api/schedule", async (req, res) => {
             } else if (responseStatus === 500) {
                 // google server error
                 res.status(500);
-                res.send(
+                res.json(
                     new ApiErrorResponse(
                         "Google backend error. Please try again in a few minutes."
                     )
@@ -359,7 +359,7 @@ app.post("/api/schedule", async (req, res) => {
             }
 
             res.status(500);
-            res.send(
+            res.json(
                 new ApiErrorResponse(
                     "Unknown error while retrieving calendar events."
                 )
