@@ -12,6 +12,7 @@ import passport from "passport";
 import session from "express-session";
 import * as dotenv from "dotenv";
 import cors from "cors";
+import fs from 'fs/promises';
 
 import "./auth";
 import { calendar_v3 } from "@googleapis/calendar";
@@ -240,36 +241,23 @@ function bin(
     return binnedSchedule;
 }
 
-// function bin(
-//     eventWrapperList: EventWrapper[],
-//     classes: Set<string>
-// ): Map<string, Map<number, Interval[]>> {
-//     const weekDayBin: Map<number, Interval[]> = new Map<number, Interval[]>(
-//         [0, 1, 2, 3, 4, 5, 6].map((day) => [day, []])
-//     );
+async function getCourseCatalog(): Promise<CourseCatalog> {
+    // returns the source of truth list of all courses
+    // TODO: replace this with a real way to get the SOT
+    try {
+        const data = await fs.readFile('./courseCatalog.csv');
+        const courseCatalog: CourseCatalog = [];
+        data.toString().split('\n').forEach((courseAbbreviation: string) => {
+            courseCatalog.push(new CourseInfo(courseAbbreviation.trim()));
+        });
+        console.log(courseCatalog);
 
-//     const classList = Array.from(classes);
-//     const classBin: Map<string, Map<number, Interval[]>> = new Map<
-//         string,
-//         Map<number, Interval[]>
-//     >(
-//         classList.map((c) => [
-//             c,
-//             new Map<number, Interval[]>(
-//                 JSON.parse(JSON.stringify(Array.from(weekDayBin)))
-//             ),
-//         ])
-//     );
-
-//     eventWrapperList.forEach((eventWrapper) => {
-//         const eventWeekDay = eventWrapper.weekDay;
-//         eventWrapper.classes.forEach((c) => {
-//             classBin.get(c)?.get(eventWeekDay)?.push(eventWrapper.interval);
-//         });
-//     });
-
-//     return classBin;
-// }
+        return courseCatalog;
+    } catch (e) {
+        console.log(e);
+        return [];
+    }
+}
 
 app.post("/api/schedule", async (req, res) => {
     const {
@@ -286,13 +274,7 @@ app.post("/api/schedule", async (req, res) => {
     console.log(stagingWeek);
 
     const locations = calInfoList.map((calInfo: CalendarInfo) => calInfo.name);
-    const courseCatalog: CourseCatalog = [
-        new CourseInfo("WTE"),
-        new CourseInfo("Linear Algebra"),
-        new CourseInfo("Discrete Math"),
-        new CourseInfo("Data Structures"),
-        new CourseInfo("Intro to Computer Programming"),
-    ]; //TODO: get from source of truth
+    const courseCatalog: CourseCatalog = await getCourseCatalog();
     const allShifts: Shift[] = [];
 
     for (const calId of calInfoList) {
