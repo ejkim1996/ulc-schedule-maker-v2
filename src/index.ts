@@ -13,6 +13,7 @@ import session from "express-session";
 import * as dotenv from "dotenv";
 import cors from "cors";
 import fs from 'fs/promises';
+import MongoStore from 'connect-mongo'
 
 import "./auth";
 import { calendar_v3 } from "@googleapis/calendar";
@@ -35,17 +36,27 @@ import {
 
 dotenv.config();
 
+declare module 'express-session' {
+    interface SessionData {
+        accessToken: string;
+        destination: string;
+    }
+}
+
 const app: Express = express();
 const port = process.env.PORT ?? 3001;
-
-// app.use("/api/events", eventRouter);
 
 function isLoggedIn(req: Request, res: Response, next: NextFunction) {
     req.user ? next() : res.sendStatus(401);
 }
 
 app.use(express.static(path.join(__dirname, "client/build")));
-app.use(session({ secret: process.env.SESSION_SECRET as string }));
+app.use(session({
+    secret: process.env.SESSION_SECRET as string,
+    store: MongoStore.create({
+        mongoUrl: process.env.MONGODB_URI as string,
+    })
+}));
 app.use(passport.initialize());
 app.use(passport.session());
 app.use(express.json());
@@ -98,13 +109,19 @@ app.get(
     })
 );
 
-app.get(
-    "/google/callback",
+app.get("/google/callback",
     passport.authenticate("google", {
-        successRedirect: `${process.env.FE_URL}/scheduler`,
+        successRedirect: `${process.env.FE_URL}/api/auth/successRedirect`,
         failureRedirect: "/auth/failure",
-    })
-);
+}));
+
+app.get("/api/auth/successRedirect", (req, res) => {
+    req.session.accessToken = req.user?.accessToken;
+    req.session.save((err) => {
+        console.log(`Access Token not saved: ${err}`);
+    });
+    res.redirect('/scheduler');
+})
 
 app.get("/api/protected", isLoggedIn, (req, res) => {
     let test = {
@@ -116,9 +133,19 @@ app.get("/api/protected", isLoggedIn, (req, res) => {
 });
 
 app.get("/api/calendars", async (req, res) => {
+    // check if there's a user
+    let accessToken = ''
+    if (req.user) {
+        accessToken = req.user.accessToken;
+    } else if (req.session.accessToken) {
+        accessToken = req.session.accessToken;
+    } else {
+        console.log('There is no session or user.'); // TODO: make this redirect in front end
+    }
+
     let url =
         "https://www.googleapis.com/calendar/v3/users/me/calendarList?access_token=" +
-        req.user?.accessToken;
+        accessToken;
 
     // TODO: catch errors
     const rawData = await fetch(url, {
@@ -260,6 +287,15 @@ async function getCourseCatalog(): Promise<CourseCatalog> {
 }
 
 app.post("/api/schedule", async (req, res) => {
+
+    // check if there's a user
+    let accessToken = ''
+    if (req.user) {
+        accessToken = req.user.accessToken;
+    } else if (req.session.accessToken) {
+        accessToken = req.session.accessToken;
+    }
+
     const {
         calendars: calInfoList,
         stagingWeek,
@@ -282,7 +318,7 @@ app.post("/api/schedule", async (req, res) => {
 
         const url =
             `https://www.googleapis.com/calendar/v3/calendars/${id}/events?` +
-            `access_token=${req.user?.accessToken}&` +
+            `access_token=${accessToken}&` +
             `timeMin=${startTime.toISOString()}&` +
             `timeMax=${endTime.toISOString()}`;
 
