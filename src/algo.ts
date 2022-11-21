@@ -2,7 +2,7 @@ import { Interval } from "../@types/scheduler";
 
 export function getClassSchedule(intervals: Interval[]): Interval[] {
     if (intervals.length === 0) {
-        throw new Error("Cannot get schedule for empty array of classes");
+        return [];
     }
     const intervalsClone = intervals.slice();
     intervalsClone.sort(

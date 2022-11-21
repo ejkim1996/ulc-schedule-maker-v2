@@ -45,11 +45,15 @@ const Group: React.FC<Props> = ({ course }) => {
 
     const locationStrings: LocationString[] = course.locationSchedules.map(
         (ls) => {
-            const scheduleBlock = ls.dailySchedules.map((ds) => {
+            const scheduleBlock = ls.dailySchedules.map((ds, index) => {
                 const intervalString = ds.intervals.reduce(
                     (prev: string, curr: Interval) => {
-                        const startString = curr.start.toLocaleTimeString();
-                        const endString = curr.end.toLocaleTimeString();
+                        const startString = new Date(
+                            curr.start
+                        ).toLocaleTimeString();
+                        const endString = new Date(
+                            curr.end
+                        ).toLocaleTimeString();
 
                         return prev + `${startString} - ${endString}`;
                     },
@@ -57,7 +61,7 @@ const Group: React.FC<Props> = ({ course }) => {
                 );
 
                 return (
-                    <li>
+                    <li key={index}>
                         {dayMap.get(ds.weekDay)}: {intervalString}
                     </li>
                 );
@@ -71,12 +75,12 @@ const Group: React.FC<Props> = ({ course }) => {
     );
 
     const locationJsx = locationStrings.reduce(
-        (prev: JSX.Element, curr: LocationString) => {
+        (prev: JSX.Element, curr: LocationString, index) => {
             const newJsx = (
-                <>
+                <div key={index}>
                     <h3 className="font-bold">{curr.location}</h3>
                     <ul>{curr.schedule}</ul>
-                </>
+                </div>
             );
 
             return (
@@ -163,13 +167,11 @@ const Scheduler: NextPage = () => {
             body: JSON.stringify(reqBody),
         });
 
-        const output = await res;
+        const output = await res.json();
 
-        console.log(output);
+        const schedule = output as Schedule;
 
-        // const schedules = makeText(output);
-
-        // setSchedules(schedules);
+        setSchedules(schedule);
     };
 
     // const makeText = (res: any) => {
@@ -261,7 +263,7 @@ const Scheduler: NextPage = () => {
     });
 
     const schedulesJs = schedules.map((s) => {
-        return Group({ course: s });
+        return <Group course={s} key={s.courseInfo.abbreviation}></Group>;
     });
 
     const form = (
