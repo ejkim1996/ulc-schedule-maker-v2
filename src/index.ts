@@ -200,6 +200,9 @@ function bin(
 
     // populate the schedule with the relevant intervals
     shifts.forEach((shift: Shift) => {
+        if (!shift.coursesGiven) {
+            console.log(shift);
+        }
         shift.coursesGiven.forEach((courseGiven: string) => {
             const relevantCourseSchedule = binnedSchedule.find(
                 (courseSchedule: CourseSchedule) => {
@@ -351,6 +354,7 @@ app.post("/api/schedule", async (req, res) => {
         const eventList: Event[] = eventJson.items;
 
         eventList.forEach((event) => {
+            if (event.status && event.status !== 'cancelled')
             allShifts.push(new Shift(event, name));
         });
     }

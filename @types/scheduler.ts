@@ -90,13 +90,22 @@ export class Shift extends Interval {
         // this is what we currently have implemented
         const description = event.description;
         if (!description) {
-            throw new Error("Event has no description.");
+            this.coursesGiven = [];
+            return;
         }
         this.coursesGiven = description
             .split("-")[2]
-            .split(",")
+            ?.split(",")
             .map((c) => c.trim())
             .filter((c) => c !== "");
+
+        if (!this.coursesGiven) {
+            this.coursesGiven = [];
+        }
+
+        // TODO: current edge cases that need to be covered
+        //       no description (we could check the event name)
+        //       M dashes, or better yet a mix of both
     }
 }
 
