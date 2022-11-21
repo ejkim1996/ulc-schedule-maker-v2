@@ -1,6 +1,6 @@
 import { NextPage } from "next";
 import React, { useEffect, useState } from "react";
-import { FaChevronDown } from "react-icons/fa";
+import { FaChevronDown, FaChevronUp } from "react-icons/fa";
 
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
@@ -14,12 +14,6 @@ import {
     Interval,
     Schedule,
 } from "../../@types/scheduler";
-
-interface ScheduleRep {
-    className: string;
-    uHallString: string;
-    arcString: String;
-}
 
 type Props = {
     course: CourseSchedule;
@@ -60,10 +54,12 @@ const Group: React.FC<Props> = ({ course }) => {
                     ""
                 );
 
-                return (
+                return intervalString != "" ? (
                     <li key={index}>
                         {dayMap.get(ds.weekDay)}: {intervalString}
                     </li>
+                ) : (
+                    <></>
                 );
             });
 
@@ -77,7 +73,7 @@ const Group: React.FC<Props> = ({ course }) => {
     const locationJsx = locationStrings.reduce(
         (prev: JSX.Element, curr: LocationString, index) => {
             const newJsx = (
-                <div key={index}>
+                <div key={index} className={index != 0 ? "mt-2 md:mt-0" : ""}>
                     <h3 className="font-bold">{curr.location}</h3>
                     <ul>{curr.schedule}</ul>
                 </div>
@@ -95,13 +91,20 @@ const Group: React.FC<Props> = ({ course }) => {
 
     return (
         <>
-            <Disclosure key={courseName}>
-                <Disclosure.Button className="flex w-full justify-between rounded-lg bg-purple-100 px-4 py-2 text-left text-sm font-medium text-purple-900 hover:bg-purple-200 focus:outline-none focus-visible:ring focus-visible:ring-purple-500 focus-visible:ring-opacity-75">
-                    {courseName}
-                </Disclosure.Button>
-                <Disclosure.Panel className="px-4 pt-4 pb-2 text-sm text-gray-500">
-                    {locationJsx}
-                </Disclosure.Panel>
+            <Disclosure key={courseName} as="div" defaultOpen={true}>
+                {({ open }) => (
+                    <>
+                        <Disclosure.Button className="flex w-full justify-between rounded-lg bg-purple-100 px-4 py-2 text-left text-sm font-medium text-purple-900 hover:bg-purple-200 focus:outline-none focus-visible:ring focus-visible:ring-purple-500 focus-visible:ring-opacity-75">
+                            <span>{courseName}</span>
+                            <span className="my-auto">
+                                {open ? <FaChevronUp /> : <FaChevronDown />}
+                            </span>
+                        </Disclosure.Button>
+                        <Disclosure.Panel className="px-4 pt-2 pb-2 text-sm text-gray-500 grid grid-cols-1 md:grid-cols-2">
+                            {locationJsx}
+                        </Disclosure.Panel>
+                    </>
+                )}
             </Disclosure>
         </>
     );
@@ -114,6 +117,7 @@ const Scheduler: NextPage = () => {
     const [stagingDate, setStagingDate] = useState(new Date());
 
     const [schedules, setSchedules] = useState<Schedule>([]);
+    const [searchText, setSearchText] = useState<string>("");
 
     useEffect(() => {
         fetchCalendars();
@@ -174,64 +178,6 @@ const Scheduler: NextPage = () => {
         setSchedules(schedule);
     };
 
-    // const makeText = (res: any) => {
-    //     const schedules: ScheduleRep[] = [];
-
-    //     for (const className in res) {
-    //         const days = [
-    //             "Sunday",
-    //             "Monday",
-    //             "Tuesday",
-    //             "Wednesday",
-    //             "Thursday",
-    //             "Friday",
-    //             "Saturday",
-    //         ];
-
-    //         const arc: any = res[className][0];
-    //         const uhall: any = res[className][1];
-
-    //         let arcString = "";
-    //         for (const [i, day] of arc.entries()) {
-    //             const dayName = days[i];
-    //             let out = `${dayName} `;
-    //             for (const interval of day[i]) {
-    //                 out += `${new Date(
-    //                     interval.start
-    //                 ).toLocaleTimeString()} - ${new Date(
-    //                     interval.end
-    //                 ).toLocaleTimeString()}; `;
-    //             }
-    //             arcString += out + "\n";
-    //         }
-
-    //         let uHallString = "";
-    //         for (const [i, day] of uhall.entries()) {
-    //             const dayName = days[i];
-    //             let out = `${dayName} `;
-    //             for (const interval of day[i]) {
-    //                 out += `${new Date(
-    //                     interval.start
-    //                 ).toLocaleTimeString()} - ${new Date(
-    //                     interval.end
-    //                 ).toLocaleTimeString()}; `;
-    //             }
-    //             uHallString += out + "\n";
-    //         }
-
-    //         const schedule: ScheduleRep = {
-    //             className: className,
-    //             uHallString: uHallString,
-    //             arcString: arcString,
-    //         };
-
-    //         schedules.push(schedule);
-    //     }
-
-    //     console.log(schedules);
-    //     return schedules;
-    // };
-
     const calendarList = calendars.map((cal: any) => {
         return (
             <li key={cal.id}>
@@ -262,9 +208,16 @@ const Scheduler: NextPage = () => {
         );
     });
 
-    const schedulesJs = schedules.map((s) => {
-        return <Group course={s} key={s.courseInfo.abbreviation}></Group>;
-    });
+    const schedulesJs = schedules
+        .filter((s) => {
+            if (searchText.length != 0) {
+                return s.courseInfo.abbreviation.match(searchText);
+            }
+            return true;
+        })
+        .map((s) => {
+            return <Group course={s} key={s.courseInfo.abbreviation}></Group>;
+        });
 
     const form = (
         <>
@@ -332,12 +285,32 @@ const Scheduler: NextPage = () => {
         </>
     );
 
+    const handleSearch = (text: string) => {
+        setSearchText(text);
+    };
+
     const details = (
-        <div className="grid place-items-center h-full">
-            <div className="mx-auto w-full max-w-md rounded-2xl bg-white p-2">
+        <>
+            <div className="mx-auto w-full max-w-3xl rounded-2xl bg-white p-2 m-4">
+                <h1 className="text-4xl text-left pt-2 pb-4 pl-2 text-gray-800 font-bold">
+                    Week of{" "}
+                    {stagingDate.toLocaleString("default", {
+                        month: "long",
+                    })}{" "}
+                    {stagingDate.getDate()}
+                </h1>
+                <input
+                    type="text"
+                    placeholder="Search"
+                    className="input input-sm w-full bg-gray-100 mb-2 text-gray-800"
+                    onChange={(e) => {
+                        handleSearch(e.target.value);
+                    }}
+                    value={searchText}
+                />
                 <div className="flex flex-col space-y-2">{schedulesJs}</div>
             </div>
-        </div>
+        </>
     );
 
     if (schedules.length === 0) {
