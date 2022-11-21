@@ -1,95 +1,97 @@
-import { NextPage } from "next";
-import React, { useEffect, useState } from "react";
-import { FaChevronDown, FaChevronUp } from "react-icons/fa";
+import { NextPage } from 'next'
+import React, { useEffect, useState } from 'react'
+import { FaChevronDown, FaChevronUp } from 'react-icons/fa'
 
-import DatePicker from "react-datepicker";
-import "react-datepicker/dist/react-datepicker.css";
+import DatePicker from 'react-datepicker'
+import 'react-datepicker/dist/react-datepicker.css'
 
-import { Disclosure } from "@headlessui/react";
+import { Disclosure } from '@headlessui/react'
 
 import {
-    ApiScheduleRequest,
-    CalendarInfo,
-    CourseSchedule,
-    Interval,
-    Schedule,
-} from "../../@types/scheduler";
+  ApiScheduleRequest,
+  CalendarInfo,
+  CourseSchedule,
+  Interval,
+  Schedule
+} from '../../@types/scheduler'
 
-type Props = {
-    course: CourseSchedule;
-};
+interface Props {
+  course: CourseSchedule
+}
 
 const Group: React.FC<Props> = ({ course }) => {
-    type LocationString = {
-        location: string;
-        schedule: JSX.Element[];
-    };
+  interface LocationString {
+    location: string
+    schedule: JSX.Element[]
+  }
 
-    const dayMap = new Map<number, string>([
-        [0, "Sunday"],
-        [1, "Monday"],
-        [2, "Tuesday"],
-        [3, "Wednesday"],
-        [4, "Thursday"],
-        [5, "Friday"],
-        [6, "Saturday"],
-    ]);
+  const dayMap = new Map<number, string>([
+    [0, 'Sunday'],
+    [1, 'Monday'],
+    [2, 'Tuesday'],
+    [3, 'Wednesday'],
+    [4, 'Thursday'],
+    [5, 'Friday'],
+    [6, 'Saturday']
+  ])
 
-    const courseName = course.courseInfo.abbreviation;
+  const courseName = course.courseInfo.abbreviation
 
-    const locationStrings: LocationString[] = course.locationSchedules.map(
-        (ls) => {
-            const scheduleBlock = ls.dailySchedules.map((ds, index) => {
-                const intervalString = ds.intervals.reduce(
-                    (prev: string, curr: Interval) => {
-                        const startString = new Date(
-                            curr.start
-                        ).toLocaleTimeString();
-                        const endString = new Date(
-                            curr.end
-                        ).toLocaleTimeString();
+  const locationStrings: LocationString[] = course.locationSchedules.map(
+    (ls) => {
+      const scheduleBlock = ls.dailySchedules.map((ds, index) => {
+        const intervalString = ds.intervals.reduce(
+          (prev: string, curr: Interval) => {
+            const startString = new Date(
+              curr.start
+            ).toLocaleTimeString()
+            const endString = new Date(
+              curr.end
+            ).toLocaleTimeString()
 
-                        return prev + `${startString} - ${endString}`;
-                    },
-                    ""
-                );
+            return prev + `${startString} - ${endString}; `
+          },
+          ''
+        )
 
-                return intervalString != "" ? (
+        return intervalString !== ''
+          ? (
                     <li key={index}>
                         {dayMap.get(ds.weekDay)}: {intervalString}
                     </li>
-                ) : (
+            )
+          : (
                     <></>
-                );
-            });
+            )
+      })
 
-            return {
-                location: ls.location,
-                schedule: scheduleBlock,
-            };
-        }
-    );
+      return {
+        location: ls.location,
+        schedule: scheduleBlock
+      }
+    }
+  )
 
-    const locationJsx = locationStrings.reduce(
-        (prev: JSX.Element, curr: LocationString, index) => {
-            const newJsx = (
-                <div key={index} className={index != 0 ? "mt-2 md:mt-0" : ""}>
+  const locationJsx = locationStrings.reduce(
+    (prev: JSX.Element, curr: LocationString, index) => {
+      const newJsx = (
+                <div key={index} className={index !== 0 ? 'mt-2 md:mt-0' : ''}>
                     <h3 className="font-bold">{curr.location}</h3>
                     <ul>{curr.schedule}</ul>
                 </div>
-            );
+      )
 
-            return (
+      return (
                 <>
                     {prev}
                     {newJsx}
                 </>
-            );
-        },
+      )
+    },
         <></>
-    );
+  )
 
-    return (
+  return (
         <>
             <Disclosure key={courseName} as="div" defaultOpen={true}>
                 {({ open }) => (
@@ -107,119 +109,132 @@ const Group: React.FC<Props> = ({ course }) => {
                 )}
             </Disclosure>
         </>
-    );
-};
+  )
+}
 
 const Scheduler: NextPage = () => {
-    const [calendars, setCalendars] = useState<CalendarInfo[]>([]);
-    const [selectedArc, setSelectedArc] = useState<CalendarInfo>();
-    const [selectedUHall, setSelectedUHall] = useState<CalendarInfo>();
-    const [stagingDate, setStagingDate] = useState(new Date());
+  const [calendars, setCalendars] = useState<CalendarInfo[]>([])
+  const [selectedArc, setSelectedArc] = useState<CalendarInfo>()
+  const [selectedUHall, setSelectedUHall] = useState<CalendarInfo>()
+  const [stagingDate, setStagingDate] = useState(new Date())
 
-    const [schedules, setSchedules] = useState<Schedule>([]);
-    const [searchText, setSearchText] = useState<string>("");
+  const [schedules, setSchedules] = useState<Schedule>([])
+  const [searchText, setSearchText] = useState<string>('')
 
-    useEffect(() => {
-        fetchCalendars();
-    }, []);
+  useEffect(() => {
+    void fetchCalendars()
+  }, [])
 
-    async function fetchCalendars() {
-        const res = await fetch("/api/calendars", {
-            method: "GET",
-        });
-        const data: CalendarInfo[] = await res.json();
-        setCalendars(data);
+  async function fetchCalendars (): Promise<void> {
+    const res = await fetch('/api/calendars', {
+      method: 'GET'
+    })
+    const data: CalendarInfo[] = await res.json()
+    setCalendars(data)
+  }
+
+  const handleArc = (cal: CalendarInfo): void => {
+    setSelectedArc(cal)
+  }
+
+  const handleUHall = (cal: CalendarInfo): void => {
+    setSelectedUHall(cal)
+  }
+
+  const handleGo = async (): Promise<void> => {
+    if ((selectedArc == null) || (selectedUHall == null)) {
+      return
     }
 
-    const handleArc = (cal: CalendarInfo) => {
-        setSelectedArc(cal);
-    };
+    const calList: CalendarInfo[] = [
+      {
+        id: selectedArc.id,
+        name: 'ARC'
+      },
+      {
+        id: selectedUHall.id,
+        name: 'UHall'
+      }
+    ]
 
-    const handleUHall = (cal: CalendarInfo) => {
-        setSelectedUHall(cal);
-    };
+    const reqBody: ApiScheduleRequest = {
+      calendars: calList,
+      stagingWeek: stagingDate
+    }
 
-    const handleGo = async () => {
-        if (!selectedArc || !selectedUHall) {
-            return;
+    console.log(JSON.stringify(reqBody))
+
+    const res = await fetch('/api/schedule', {
+      method: 'POST',
+      headers: {
+        Accept: 'application/json',
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(reqBody)
+    })
+
+    const output = await res.json()
+
+    const schedule = output as Schedule
+
+    setSchedules(schedule)
+  }
+
+  const calendarList = calendars.map((cal: any) => {
+    return (
+            <li key={cal.id}>
+                <button
+                    className="text-left"
+                    onClick={() => {
+                      handleArc(cal)
+                    }}
+                >
+                    {cal.name}
+                </button>
+            </li>
+    )
+  })
+
+  const calendarListUHall = calendars.map((cal: any) => {
+    return (
+            <li key={cal.id}>
+                <button
+                    className="text-left"
+                    onClick={() => {
+                      handleUHall(cal)
+                    }}
+                >
+                    {cal.name}
+                </button>
+            </li>
+    )
+  })
+
+  const isValidCourse = (course: CourseSchedule): boolean => {
+    let isValid = false
+    course.locationSchedules.forEach((ls) => {
+      ls.dailySchedules.forEach((ds) => {
+        if (ds.intervals.length !== 0) {
+          isValid = true
         }
+      })
+    })
 
-        const calList: CalendarInfo[] = [
-            {
-                id: selectedArc.id,
-                name: "ARC",
-            },
-            {
-                id: selectedUHall.id,
-                name: "UHall",
-            },
-        ];
+    return isValid
+  }
 
-        const reqBody: ApiScheduleRequest = {
-            calendars: calList,
-            stagingWeek: stagingDate,
-        };
+  const schedulesJs = schedules
+    .filter((s) => {
+      if (searchText.length !== 0) {
+        return s.courseInfo.abbreviation.toLowerCase().match(searchText.toLowerCase())
+      }
+      return true
+    })
+    .map((s) => {
+      return isValidCourse(s) ? <Group course={s} key={s.courseInfo.abbreviation}></Group> : <></>
+    })
 
-        console.log(JSON.stringify(reqBody));
-
-        const res = await fetch("/api/schedule", {
-            method: "POST",
-            headers: {
-                Accept: "application/json",
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify(reqBody),
-        });
-
-        const output = await res.json();
-
-        const schedule = output as Schedule;
-
-        setSchedules(schedule);
-    };
-
-    const calendarList = calendars.map((cal: any) => {
-        return (
-            <li key={cal.id}>
-                <button
-                    className="text-left"
-                    onClick={() => {
-                        handleArc(cal);
-                    }}
-                >
-                    {cal.name}
-                </button>
-            </li>
-        );
-    });
-
-    const calendarListUHall = calendars.map((cal: any) => {
-        return (
-            <li key={cal.id}>
-                <button
-                    className="text-left"
-                    onClick={() => {
-                        handleUHall(cal);
-                    }}
-                >
-                    {cal.name}
-                </button>
-            </li>
-        );
-    });
-
-    const schedulesJs = schedules
-        .filter((s) => {
-            if (searchText.length != 0) {
-                return s.courseInfo.abbreviation.match(searchText);
-            }
-            return true;
-        })
-        .map((s) => {
-            return <Group course={s} key={s.courseInfo.abbreviation}></Group>;
-        });
-
-    const form = (
+  const form = (
         <>
             <div className="grid place-items-center h-full">
                 <div className="grid gap-y-2">
@@ -231,7 +246,7 @@ const Scheduler: NextPage = () => {
                         <div className="grow"></div>
                         <div className="dropdown dropdown-hover">
                             <label tabIndex={0} className="btn">
-                                {selectedArc?.name ?? "Choose ARC"}
+                                {selectedArc?.name ?? 'Choose ARC'}
                                 <span className="pl-3">
                                     <FaChevronDown />
                                 </span>
@@ -249,7 +264,7 @@ const Scheduler: NextPage = () => {
                         <div className="grow"></div>
                         <div className="dropdown dropdown-hover">
                             <label tabIndex={0} className="btn">
-                                {selectedUHall?.name ?? "Choose UHall"}
+                                {selectedUHall?.name ?? 'Choose UHall'}
                                 <span className="pl-3">
                                     <FaChevronDown />
                                 </span>
@@ -275,7 +290,7 @@ const Scheduler: NextPage = () => {
                     <button
                         className="btn btn-primary self-center"
                         onClick={() => {
-                            handleGo();
+                          void handleGo()
                         }}
                     >
                         Go
@@ -283,20 +298,20 @@ const Scheduler: NextPage = () => {
                 </div>
             </div>
         </>
-    );
+  )
 
-    const handleSearch = (text: string) => {
-        setSearchText(text);
-    };
+  const handleSearch = (text: string): void => {
+    setSearchText(text)
+  }
 
-    const details = (
+  const details = (
         <>
             <div className="mx-auto w-full max-w-3xl rounded-2xl bg-white p-2 m-4">
                 <h1 className="text-4xl text-left pt-2 pb-4 pl-2 text-gray-800 font-bold">
-                    Week of{" "}
-                    {stagingDate.toLocaleString("default", {
-                        month: "long",
-                    })}{" "}
+                    Week of{' '}
+                    {stagingDate.toLocaleString('default', {
+                      month: 'long'
+                    })}{' '}
                     {stagingDate.getDate()}
                 </h1>
                 <input
@@ -304,20 +319,20 @@ const Scheduler: NextPage = () => {
                     placeholder="Search"
                     className="input input-sm w-full bg-gray-100 mb-2 text-gray-800"
                     onChange={(e) => {
-                        handleSearch(e.target.value);
+                      handleSearch(e.target.value)
                     }}
                     value={searchText}
                 />
                 <div className="flex flex-col space-y-2">{schedulesJs}</div>
             </div>
         </>
-    );
+  )
 
-    if (schedules.length === 0) {
-        return form;
-    } else {
-        return details;
-    }
-};
+  if (schedules.length === 0) {
+    return form
+  } else {
+    return details
+  }
+}
 
-export default Scheduler;
+export default Scheduler

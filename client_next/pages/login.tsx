@@ -1,8 +1,8 @@
-import type { NextPage } from "next";
-import Link from "next/link";
+import type { NextPage } from 'next'
+import Link from 'next/link'
 
 const Login: NextPage = () => {
-    return (
+  return (
         <div className="grid place-items-center h-full">
             <div className="flex flex-col gap-8">
                 <h1 className="text-4xl text-center">ULC Schedule Maker</h1>
@@ -13,7 +13,7 @@ const Login: NextPage = () => {
                 </Link>
             </div>
         </div>
-    );
-};
+  )
+}
 
-export default Login;
+export default Login

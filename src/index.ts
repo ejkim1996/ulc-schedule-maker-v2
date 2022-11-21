@@ -116,8 +116,10 @@ app.get('/google/callback',
 app.get('/api/auth/successRedirect', (req, res) => {
   req.session.accessToken = req.user?.accessToken
   req.session.save((err) => {
-    const errorMessage: string = err.toString()
-    console.log(`Access Token not saved: ${errorMessage}`)
+    if (err !== undefined && err !== null) {
+      const errorMessage: string = err.toString()
+      console.log(`Access Token not saved: ${errorMessage}`)
+    }
   })
   res.redirect('/scheduler')
 })
