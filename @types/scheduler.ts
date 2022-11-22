@@ -72,7 +72,7 @@ export class Shift extends Interval {
     const startString = event.start?.dateTime
     const endString = event.end?.dateTime
 
-    if (!(startString && endString)) {
+    if (startString == null || endString == null) {
       throw new Error('Event has no start or end date/time.')
     }
 
@@ -84,12 +84,12 @@ export class Shift extends Interval {
     this.parseCourses(event)
   }
 
-  private parseCourses (event: Event) {
+  private parseCourses (event: Event): void {
     // sets this.coursesGiven to be the list of names we were given
     // if we want, we can do some input validation in here
     // this is what we currently have implemented
     const description = event.description
-    if (!description) {
+    if (description == null) {
       this.coursesGiven = []
       return
     }
@@ -99,7 +99,7 @@ export class Shift extends Interval {
       .map((c) => c.trim())
       .filter((c) => c !== '')
 
-    if (!this.coursesGiven) {
+    if (this.coursesGiven == null) {
       this.coursesGiven = []
     }
 
@@ -112,7 +112,7 @@ export class Shift extends Interval {
 // describes the schedule (of a specific course at a location)
 // over the course of a day
 export interface DailySchedule {
-  weekDay: 0 | 1 | 2 | 3 | 4 | 5 | 6
+  weekDay: DayNumber
   intervals: Interval[]
 }
 
@@ -174,7 +174,7 @@ export class ApiErrorResponse implements ApiResponseInterface {
     } else {
       this.message = error
     }
-    if (data) {
+    if (data != null) {
       this.data = data
     }
   }
