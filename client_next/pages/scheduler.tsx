@@ -1,6 +1,6 @@
 import { NextPage } from 'next'
 import React, { useEffect, useState } from 'react'
-import { FaChevronDown, FaChevronUp } from 'react-icons/fa'
+import { FaChevronDown, FaChevronUp, FaCopy, FaCheck } from 'react-icons/fa'
 
 import DatePicker from 'react-datepicker'
 import 'react-datepicker/dist/react-datepicker.css'
@@ -22,7 +22,8 @@ interface Props {
 const Group: React.FC<Props> = ({ course }) => {
   interface LocationString {
     location: string
-    schedule: JSX.Element[]
+    schedule: Array<JSX.Element | null>
+    scheduleString: string
   }
 
   const dayMap = new Map<number, string>([
@@ -60,26 +61,66 @@ const Group: React.FC<Props> = ({ course }) => {
                         {dayMap.get(ds.weekDay)}: {intervalString}
                     </li>
             )
-          : (
-                    <></>
-            )
+          : null
       })
+
+      const scheduleString = ls.dailySchedules.reduce((prev, curr) => {
+        const intervalString = curr.intervals.reduce(
+          (prev: string, curr: Interval) => {
+            const startString = new Date(
+              curr.start
+            ).toLocaleTimeString()
+            const endString = new Date(
+              curr.end
+            ).toLocaleTimeString()
+
+            return prev + `${startString} - ${endString}; `
+          },
+          ''
+        )
+
+        return intervalString !== '' && dayMap.get(curr.weekDay) !== undefined
+          ? prev + `${dayMap.get(curr.weekDay)}: ${intervalString} \n`
+          : prev + ''
+      }, '')
 
       return {
         location: ls.location,
-        schedule: scheduleBlock
+        schedule: scheduleBlock,
+        scheduleString
       }
     }
   )
 
+  const locationS = locationStrings.reduce(
+    (prev: string, curr: LocationString, index) => {
+      const newString = `${curr.location} \n ${curr.scheduleString}`
+      if (curr.scheduleString === '') {
+        return prev
+      }
+      return prev + newString
+    }, ''
+  )
+
   const locationJsx = locationStrings.reduce(
     (prev: JSX.Element, curr: LocationString, index) => {
-      const newJsx = (
+      let newJsx = (
                 <div key={index} className={index !== 0 ? 'mt-2 md:mt-0' : ''}>
                     <h3 className="font-bold">{curr.location}</h3>
                     <ul>{curr.schedule}</ul>
                 </div>
       )
+
+      const hasValid = curr.schedule.reduce((prev, curr) => {
+        if (curr !== null) {
+          return true
+        }
+        return prev
+      }, false)
+
+      if (!hasValid) {
+        newJsx = <></>
+      }
 
       return (
                 <>
@@ -102,13 +143,51 @@ const Group: React.FC<Props> = ({ course }) => {
                                 {open ? <FaChevronUp /> : <FaChevronDown />}
                             </span>
                         </Disclosure.Button>
-                        <Disclosure.Panel className="px-4 pt-2 pb-2 text-sm text-gray-500 grid grid-cols-1 md:grid-cols-2">
+                        <Disclosure.Panel className="px-4 pt-2 pb-2 text-sm text-gray-500 grid grid-cols-1 md:grid-cols-2 relative">
                             {locationJsx}
+                            <CopyButton copyText={locationS}></CopyButton>
                         </Disclosure.Panel>
                     </>
                 )}
             </Disclosure>
         </>
+  )
+}
+
+const CopyButton: React.FC<{ copyText: string }> = ({ copyText }) => {
+  const [isCopied, setIsCopied] = useState(false)
+
+  // TODO: Implement copy to clipboard functionality
+  async function copyTextToClipboard (text: string): Promise<void> {
+    if ('clipboard' in navigator) {
+      await navigator.clipboard.writeText(text)
+    } else {
+      document.execCommand('copy', true, text)
+    }
+  }
+
+  // onClick handler function for the copy button
+  const handleCopyClick = (): void => {
+    // Asynchronously call copyTextToClipboard
+    copyTextToClipboard(copyText)
+      .then(() => {
+        // If successful, update the isCopied state value
+        setIsCopied(true)
+        setTimeout(() => {
+          setIsCopied(false)
+        }, 1500)
+      })
+      .catch((err) => {
+        console.log(err)
+      })
+  }
+
+  return (
+    <div className='absolute top-2 right-0'>
+      <button onClick={handleCopyClick} className="btn btn-square bg-purple-100 hover:bg-purple-200 text-purple-900 border-0">
+        <span>{!isCopied ? <FaCopy /> : <FaCheck />}</span>
+      </button>
+    </div>
   )
 }
 
@@ -120,6 +199,7 @@ const Scheduler: NextPage = () => {
 
   const [schedules, setSchedules] = useState<Schedule>([])
   const [searchText, setSearchText] = useState<string>('')
+  const [errorMessage, setErrorMessage] = useState<string>('')
 
   useEffect(() => {
     void fetchCalendars()
@@ -288,7 +368,7 @@ const Scheduler: NextPage = () => {
                         </div>
                     </div>
                     <button
-                        className="btn btn-primary self-center"
+                        className="btn bg-purple-200 hover:bg-purple-300 text-purple-900 border-0 self-center"
                         onClick={() => {
                           void handleGo()
                         }}
