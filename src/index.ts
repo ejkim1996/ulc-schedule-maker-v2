@@ -277,7 +277,9 @@ async function getSupportedCourseCatalog (): Promise<CourseCatalog> {
   // returns the source of truth list of all courses
   try {
     const supportedCourses: Course[] = await CourseModel.find<Course>({ supported: true }, { _id: 0, __v: 0 })
-    return supportedCourses.slice(0, 10)
+    return supportedCourses.map((course) => {
+      return new Course(course.name, course.school, course.courseId, course.department, course.supported, course.abbreviation)
+    })
   } catch (e) {
     console.log(e)
     return []
