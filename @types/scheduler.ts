@@ -46,14 +46,16 @@ export class Course implements CourseInterface {
     public courseId: string,
     public department: string,
     public supported: boolean,
-    abbreviation?: string
+    abbreviation?: string,
+    uid?: string
   ) {
     if (!supported || typeof abbreviation === 'undefined') {
       this.abbreviation = undefined
     } else {
       this.abbreviation = abbreviation
     }
-    this.uid = v4()
+
+    this.uid = uid ?? v4()
   }
 
   // this is our current implementation

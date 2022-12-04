@@ -278,7 +278,7 @@ async function getSupportedCourseCatalog (): Promise<CourseCatalog> {
   try {
     const supportedCourses: Course[] = await CourseModel.find<Course>({ supported: true }, { _id: 0, __v: 0 })
     return supportedCourses.map((course) => {
-      return new Course(course.name, course.school, course.courseId, course.department, course.supported, course.abbreviation)
+      return new Course(course.name, course.school, course.courseId, course.department, course.supported, course.abbreviation, course.uid)
     })
   } catch (e) {
     console.log(e)
