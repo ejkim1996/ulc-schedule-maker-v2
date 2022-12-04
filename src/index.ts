@@ -28,7 +28,8 @@ import {
   CourseInfo,
   LocationSchedule,
   DailySchedule,
-  CourseSchedule
+  CourseSchedule,
+  DayNumber
 } from '../@types/scheduler'
 
 dotenv.config()
@@ -49,6 +50,7 @@ function isLoggedIn (req: Request, res: Response, next: NextFunction): void {
 
 app.use(express.static(path.join(__dirname, 'client/build')))
 app.use(session({
+  resave: false,
   secret: process.env.SESSION_SECRET as string,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI as string
@@ -110,7 +112,8 @@ app.get('/google/callback',
   passport.authenticate('google', {
     successRedirect: `${process.env.FE_URL ?? ''}/api/auth/successRedirect`,
     failureRedirect: '/auth/failure'
-  }))
+  })
+)
 
 app.get('/api/auth/successRedirect', (req, res) => {
   req.session.accessToken = req.user?.accessToken
@@ -220,7 +223,7 @@ function bin (
       };
       [0, 1, 2, 3, 4, 5, 6].forEach((weekDay: number) => {
         locationSchedule.dailySchedules.push({
-          weekDay: weekDay as 0 | 1 | 2 | 3 | 4 | 5 | 6,
+          weekDay: weekDay as DayNumber,
           intervals: []
         })
       })
@@ -275,7 +278,13 @@ async function getCourseCatalog (): Promise<CourseCatalog> {
     const data = await fs.readFile('./courseCatalog.csv')
     const courseCatalog: CourseCatalog = []
     data.toString().split('\n').forEach((courseAbbreviation: string) => {
-      courseCatalog.push(new CourseInfo(courseAbbreviation.trim()))
+      courseCatalog.push(new CourseInfo(
+        '',
+        '',
+        '',
+        true,
+        courseAbbreviation.trim()
+      ))
     })
     return courseCatalog
   } catch (e) {
@@ -302,10 +311,6 @@ app.post('/api/schedule', (req, res) => {
     const startTime = new Date(stagingWeek)
     const endTime = new Date(startTime)
     endTime.setDate(startTime.getDate() + 7)
-
-    console.log(req.body)
-    console.log(calInfoList)
-    console.log(stagingWeek)
 
     const locations = calInfoList.map((calInfo: CalendarInfo) => calInfo.name)
     const courseCatalog: CourseCatalog = await getCourseCatalog()

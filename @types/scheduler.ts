@@ -1,4 +1,5 @@
 import { calendar_v3 } from '@googleapis/calendar'
+import { v4 } from 'uuid'
 import Event = calendar_v3.Schema$Event
 
 export interface CalendarInfo {
@@ -11,30 +12,60 @@ export interface Interval {
   end: Date
 }
 
-interface CourseInfoInterface {
-  name?: string // the official albert name
-  code?: string // eg CSCI-UA 101
-  abbreviation: string // the abbreviation used for the ulc calendar
-  department?: string
+// interface CourseInfoInterface {
+//   name?: string // the official albert name
+//   code?: string // eg CSCI-UA 101
+//   abbreviation: string // the abbreviation used for the ulc calendar
+//   department?: string
 
-  // the likelihood that a given course (ie the course a student types into their event description)
-  // actually is this course
-  // returns a number between 0 and 1
+//   // the likelihood that a given course (ie the course a student types into their event description)
+//   // actually is this course
+//   // returns a number between 0 and 1
+//   matchScore: (courseGiven: string) => number
+// }
+
+interface CourseInfoInterface {
+  supported: boolean // if the ulc provides tutoring for this class
+  abbreviation: string | undefined // the ulc abbreviation
+  department: string // department code (CSCI, MATH, etc)
+  courseId: string // course id in a department (101, 102, etc)
+  school: string // school code (UA, UY, etc)
+  uid: string // unique id of the string
+
   matchScore: (courseGiven: string) => number
 }
 
 export class CourseInfo implements CourseInfoInterface {
-  constructor (public abbreviation: string) {}
+  public abbreviation: string | undefined
+  public uid: string
+
+  constructor (
+    public school: string,
+    public courseId: string,
+    public department: string,
+    public supported: boolean,
+    abbreviation?: string
+  ) {
+    if (!supported || typeof abbreviation === 'undefined') {
+      this.abbreviation = undefined
+    } else {
+      this.abbreviation = abbreviation
+    }
+    this.uid = v4()
+  }
 
   // this is our current implementation
   matchScore (courseGiven: string): number {
-    return courseGiven === this.abbreviation ? 1 : 0
+    if (this.supported) {
+      return courseGiven === this.abbreviation ? 1 : 0
+    }
+    return 0
   }
 }
 
 export type CourseCatalog = CourseInfo[]
 
-type DayNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6
+export type DayNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
 interface IntervalInterface {
   start: Date
