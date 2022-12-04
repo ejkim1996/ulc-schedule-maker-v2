@@ -381,6 +381,31 @@ app.post('/api/course-catalog/update', (req, res) => {
     })
 })
 
+app.delete('/api/course-catalog', (req, res) => {
+  (async (req, res) => {
+    if (req.query.uid == null) {
+      res.status(400)
+      res.json(new ApiErrorResponse('Please supply a uid.'))
+      return
+    }
+
+    const updatedDoc = await CourseModel.findOneAndDelete<Course>({ uid: req.query.uid })
+
+    if (updatedDoc == null) {
+      res.status(400)
+      res.json(new ApiErrorResponse('No course exists with this uid. Please try another one.'))
+      return
+    }
+
+    res.json(new ApiSuccessResponse(null))
+  })(req, res)
+    .catch((err) => {
+      console.log(err)
+      res.status(500)
+      res.json(new ApiErrorResponse('Unknown database error'))
+    })
+})
+
 app.post('/api/schedule', (req, res) => {
   void (async (req, res) => {
     // check if there's a user
