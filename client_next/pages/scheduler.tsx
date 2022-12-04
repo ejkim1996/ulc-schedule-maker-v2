@@ -8,6 +8,7 @@ import 'react-datepicker/dist/react-datepicker.css'
 import { Disclosure } from '@headlessui/react'
 
 import {
+  ApiErrorResponse,
   ApiScheduleRequest,
   CalendarInfo,
   CourseSchedule,
@@ -255,6 +256,12 @@ const Scheduler: NextPage = () => {
 
     const output = await res.json()
 
+    if (res.status >= 400) {
+      const error = output as ApiErrorResponse
+      setErrorMessage(`Error occured: ${error.message}`)
+      return
+    }
+
     const schedule = output as Schedule
 
     setSchedules(schedule)
@@ -375,6 +382,10 @@ const Scheduler: NextPage = () => {
                     >
                         Go
                     </button>
+
+                    <div className='text-red-500'>
+                      {errorMessage}
+                    </div>
                 </div>
             </div>
         </>
