@@ -27,6 +27,7 @@ export interface Interval {
 interface CourseInterface {
   supported: boolean // if the ulc provides tutoring for this class
   abbreviation: string | undefined // the ulc abbreviation
+  name: string
   department: string // department code (CSCI, MATH, etc)
   courseId: string // course id in a department (101, 102, etc)
   school: string // school code (UA, UY, etc)
@@ -40,6 +41,7 @@ export class Course implements CourseInterface {
   public uid: string
 
   constructor (
+    public name: string,
     public school: string,
     public courseId: string,
     public department: string,

@@ -31,6 +31,7 @@ import {
   CourseSchedule,
   DayNumber
 } from '../@types/scheduler'
+// import { CourseModel } from './db'
 
 dotenv.config()
 
@@ -279,6 +280,7 @@ async function getCourseCatalog (): Promise<CourseCatalog> {
     const courseCatalog: CourseCatalog = []
     data.toString().split('\n').forEach((courseAbbreviation: string) => {
       courseCatalog.push(new Course(
+        '',
         '',
         '',
         '',

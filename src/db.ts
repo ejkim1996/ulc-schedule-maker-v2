@@ -1,9 +1,15 @@
 import mongoose, { Schema } from 'mongoose'
 import { Course } from '../@types/scheduler'
+import { v4 } from 'uuid'
 
 const CourseSchema = new Schema<Course>({
+  name: {
+    type: String,
+    required: true
+  },
   supported: {
     type: Boolean,
+    default: false,
     required: true
   },
   abbreviation: {
@@ -24,8 +30,15 @@ const CourseSchema = new Schema<Course>({
   },
   uid: {
     type: String,
-    required: true
+    required: true,
+    default: v4
   }
 })
 
-mongoose.model('Courses', CourseSchema)
+mongoose.model('Course', CourseSchema)
+
+mongoose.connect(process.env.MONGODB_URI ?? '', (err) => {
+  console.log(err ?? '✅ Connected to MongoDB Atlas!')
+})
+
+export const CourseModel = mongoose.model<Course>('Course')
