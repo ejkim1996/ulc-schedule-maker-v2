@@ -10,7 +10,6 @@ import passport from 'passport'
 import session from 'express-session'
 import * as dotenv from 'dotenv'
 import cors from 'cors'
-import fs from 'fs/promises'
 import MongoStore from 'connect-mongo'
 
 import './auth'
@@ -29,8 +28,10 @@ import {
   LocationSchedule,
   DailySchedule,
   CourseSchedule,
-  DayNumber
+  DayNumber,
+  ApiSuccessResponse
 } from '../@types/scheduler'
+import { CourseModel } from './db'
 // import { CourseModel } from './db'
 
 dotenv.config()
@@ -272,28 +273,27 @@ function bin (
   return binnedSchedule
 }
 
-async function getCourseCatalog (): Promise<CourseCatalog> {
+async function getSupportedCourseCatalog (): Promise<CourseCatalog> {
   // returns the source of truth list of all courses
-  // TODO: replace this with a real way to get the SOT
   try {
-    const data = await fs.readFile('./courseCatalog.csv')
-    const courseCatalog: CourseCatalog = []
-    data.toString().split('\n').forEach((courseAbbreviation: string) => {
-      courseCatalog.push(new Course(
-        '',
-        '',
-        '',
-        '',
-        true,
-        courseAbbreviation.trim()
-      ))
-    })
-    return courseCatalog
+    const supportedCourses: Course[] = await CourseModel.find<Course>({ supported: true }, { _id: 0, __v: 0 })
+    return supportedCourses.slice(0, 10)
   } catch (e) {
     console.log(e)
     return []
   }
 }
+
+app.get('/course-catalogue/supported', (req, res) => {
+  (async (req, res) => {
+    res.json(new ApiSuccessResponse(await getSupportedCourseCatalog()))
+  })(req, res)
+    .catch((err) => {
+      console.log(err)
+      res.status(500)
+      res.json(new ApiErrorResponse('Unknown database error'))
+    })
+})
 
 app.post('/api/schedule', (req, res) => {
   void (async (req, res) => {
@@ -315,7 +315,7 @@ app.post('/api/schedule', (req, res) => {
     endTime.setDate(startTime.getDate() + 7)
 
     const locations = calInfoList.map((calInfo: CalendarInfo) => calInfo.name)
-    const courseCatalog: CourseCatalog = await getCourseCatalog()
+    const courseCatalog: CourseCatalog = await getSupportedCourseCatalog()
     const allShifts: Shift[] = []
 
     for (const calId of calInfoList) {
