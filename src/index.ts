@@ -295,6 +295,19 @@ app.get('/course-catalogue/supported', (req, res) => {
     })
 })
 
+app.get('/course-catalogue', (req, res) => {
+  (async (req, res) => {
+    const query = req.query.query ?? ''
+    const courses: Course[] = await CourseModel.find({ name: { $regex: query, $options: 'i' } }, { _id: 0, __v: 0 })
+    res.json(new ApiSuccessResponse(courses))
+  })(req, res)
+    .catch((err) => {
+      console.log(err)
+      res.status(500)
+      res.json(new ApiErrorResponse('Unknown database error'))
+    })
+})
+
 app.post('/api/schedule', (req, res) => {
   void (async (req, res) => {
     // check if there's a user
