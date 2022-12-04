@@ -156,6 +156,7 @@ export class ApiSuccessResponse implements ApiResponseInterface {
   }
 }
 
+// not currently used
 export class ApiFailResponse implements ApiResponseInterface {
   status = ApiStatus.Fail
 

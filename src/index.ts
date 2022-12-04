@@ -23,7 +23,6 @@ import {
   CalendarInfo,
   Schedule,
   ApiErrorResponse,
-  ApiFailResponse,
   CourseCatalog,
   Shift,
   CourseInfo,
@@ -196,7 +195,7 @@ app.get('/api/calendars', (req, res) => {
 app.get('/auth/failure', (_, res) => {
   res.status(403)
   res.json(
-    new ApiFailResponse(
+    new ApiErrorResponse(
       'Failed to log in. Navigate to /login and try again.'
     )
   )
@@ -332,7 +331,7 @@ app.post('/api/schedule', (req, res) => {
           // invalid credentials
           res.status(401)
           res.json(
-            new ApiFailResponse(
+            new ApiErrorResponse(
               'Invalid Credentials. Navigate to /login and login through Google again.'
             )
           )
@@ -341,7 +340,7 @@ app.post('/api/schedule', (req, res) => {
           // invalid id error
           res.status(404)
           res.json(
-            new ApiFailResponse(
+            new ApiErrorResponse(
                             `${name} calendar not found. Double check that your calendars are not deleted.`
             )
           )
