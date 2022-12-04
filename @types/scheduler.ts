@@ -181,10 +181,10 @@ interface ApiResponseInterface {
   message?: string
 }
 
-export class ApiSuccessResponse implements ApiResponseInterface {
+export class ApiSuccessResponse<T> implements ApiResponseInterface {
   status = ApiStatus.Success
 
-  constructor (public data: any) {
+  constructor (public data: T) {
     this.data = data
   }
 }

@@ -286,7 +286,7 @@ async function getSupportedCourseCatalog (): Promise<CourseCatalog> {
   }
 }
 
-app.get('/course-catalogue/supported', (req, res) => {
+app.get('/course-catalog/supported', (req, res) => {
   (async (req, res) => {
     res.json(new ApiSuccessResponse(await getSupportedCourseCatalog()))
   })(req, res)
@@ -297,7 +297,7 @@ app.get('/course-catalogue/supported', (req, res) => {
     })
 })
 
-app.get('/course-catalogue', (req, res) => {
+app.get('/course-catalog', (req, res) => {
   (async (req, res) => {
     const query = req.query.query ?? ''
     const courses: Course[] = await CourseModel.find({ name: { $regex: query, $options: 'i' } }, { _id: 0, __v: 0 })
