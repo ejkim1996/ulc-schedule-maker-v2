@@ -323,7 +323,30 @@ app.post('/api/course-catalog/add', (req, res) => {
     await CourseModel.create(newCourse)
     res.json(new ApiSuccessResponse(null))
   })(req, res)
-    .catch(console.log)
+    .catch((err) => {
+      console.log(err)
+      res.status(500)
+      res.json(new ApiErrorResponse('Unknown database error'))
+    })
+})
+
+app.post('/api/course-catalog/support', (req, res) => {
+  (async (req, res) => {
+    if (req.query.uid == null) {
+      res.status(400)
+      res.json(new ApiErrorResponse('Please supply a course uid'))
+      return
+    }
+
+    const newSupported = req.query.supported ?? true
+    await CourseModel.findOneAndUpdate({ uid: req.query.uid }, { supported: newSupported })
+    res.json(new ApiSuccessResponse(null))
+  })(req, res)
+    .catch((err) => {
+      console.log(err)
+      res.status(500)
+      res.json(new ApiErrorResponse('Unknown database error'))
+    })
 })
 
 app.post('/api/schedule', (req, res) => {
