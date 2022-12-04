@@ -286,7 +286,7 @@ async function getSupportedCourseCatalog (): Promise<CourseCatalog> {
   }
 }
 
-app.get('/course-catalog/supported', (req, res) => {
+app.get('/api/course-catalog/supported', (req, res) => {
   (async (req, res) => {
     res.json(new ApiSuccessResponse(await getSupportedCourseCatalog()))
   })(req, res)
@@ -297,7 +297,7 @@ app.get('/course-catalog/supported', (req, res) => {
     })
 })
 
-app.get('/course-catalog', (req, res) => {
+app.get('/api/course-catalog', (req, res) => {
   (async (req, res) => {
     const query = req.query.query ?? ''
     const courses: Course[] = await CourseModel.find({ name: { $regex: query, $options: 'i' } }, { _id: 0, __v: 0 })
@@ -308,6 +308,22 @@ app.get('/course-catalog', (req, res) => {
       res.status(500)
       res.json(new ApiErrorResponse('Unknown database error'))
     })
+})
+
+app.post('/api/course-catalog/add', (req, res) => {
+  (async (req, res) => {
+    const newCourse = new Course(
+      req.body.name,
+      req.body.school,
+      req.body.courseId,
+      req.body.department,
+      req.body.supported,
+      req.body.abbreviation
+    )
+    await CourseModel.create(newCourse)
+    res.json(new ApiSuccessResponse(null))
+  })(req, res)
+    .catch(console.log)
 })
 
 app.post('/api/schedule', (req, res) => {
