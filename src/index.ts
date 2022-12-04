@@ -334,12 +334,44 @@ app.post('/api/course-catalog/support', (req, res) => {
   (async (req, res) => {
     if (req.query.uid == null) {
       res.status(400)
-      res.json(new ApiErrorResponse('Please supply a course uid'))
+      res.json(new ApiErrorResponse('Please supply a course uid.'))
       return
     }
 
     const newSupported = req.query.supported ?? true
-    await CourseModel.findOneAndUpdate({ uid: req.query.uid }, { supported: newSupported })
+    const updatedDoc = await CourseModel.findOneAndUpdate<Course>({ uid: req.query.uid }, { supported: newSupported })
+
+    if (updatedDoc == null) {
+      res.status(400)
+      res.json(new ApiErrorResponse('No course exists with this uid. Please try another one.'))
+      return
+    }
+
+    res.json(new ApiSuccessResponse(null))
+  })(req, res)
+    .catch((err) => {
+      console.log(err)
+      res.status(500)
+      res.json(new ApiErrorResponse('Unknown database error'))
+    })
+})
+
+app.post('/api/course-catalog/update', (req, res) => {
+  (async (req, res) => {
+    if (req.body.uid == null) {
+      res.status(400)
+      res.json(new ApiErrorResponse('Please supply a Course object with a uid.'))
+      return
+    }
+
+    const updatedDoc = await CourseModel.findOneAndUpdate<Course>({ uid: req.body.uid }, { ...req.body })
+
+    if (updatedDoc == null) {
+      res.status(400)
+      res.json(new ApiErrorResponse('No course exists with this uid. Please try another one.'))
+      return
+    }
+
     res.json(new ApiSuccessResponse(null))
   })(req, res)
     .catch((err) => {
