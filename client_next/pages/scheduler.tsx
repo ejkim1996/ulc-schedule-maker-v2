@@ -20,7 +20,7 @@ interface Props {
   course: CourseSchedule
 }
 
-const Group: React.FC<Props> = ({ course }) => {
+const Group: React.FC<Props> = ({ course: schedule }) => {
   interface LocationString {
     location: string
     schedule: Array<JSX.Element | null>
@@ -37,9 +37,9 @@ const Group: React.FC<Props> = ({ course }) => {
     [6, 'Saturday']
   ])
 
-  const courseName = course.courseInfo.abbreviation
+  const courseName = schedule.course.abbreviation
 
-  const locationStrings: LocationString[] = course.locationSchedules.map(
+  const locationStrings: LocationString[] = schedule.locationSchedules.map(
     (ls) => {
       const scheduleBlock = ls.dailySchedules.map((ds, index) => {
         const intervalString = ds.intervals.reduce(
@@ -306,19 +306,18 @@ const Scheduler: NextPage = () => {
         }
       })
     })
-
     return isValid
   }
 
   const schedulesJs = schedules
     .filter((s) => {
       if (searchText.length !== 0) {
-        return s.courseInfo.abbreviation.toLowerCase().match(searchText.toLowerCase())
+        return s.course.abbreviation.toLowerCase().match(searchText.toLowerCase())
       }
       return true
     })
     .map((s) => {
-      return isValidCourse(s) ? <Group course={s} key={s.courseInfo.abbreviation}></Group> : <></>
+      return isValidCourse(s) ? <Group course={s} key={s.course.abbreviation}></Group> : <></>
     })
 
   const form = (

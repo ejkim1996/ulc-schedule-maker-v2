@@ -24,7 +24,7 @@ export interface Interval {
 //   matchScore: (courseGiven: string) => number
 // }
 
-interface CourseInfoInterface {
+interface CourseInterface {
   supported: boolean // if the ulc provides tutoring for this class
   abbreviation: string | undefined // the ulc abbreviation
   department: string // department code (CSCI, MATH, etc)
@@ -35,7 +35,7 @@ interface CourseInfoInterface {
   matchScore: (courseGiven: string) => number
 }
 
-export class CourseInfo implements CourseInfoInterface {
+export class Course implements CourseInterface {
   public abbreviation: string | undefined
   public uid: string
 
@@ -63,7 +63,7 @@ export class CourseInfo implements CourseInfoInterface {
   }
 }
 
-export type CourseCatalog = CourseInfo[]
+export type CourseCatalog = Course[]
 
 export type DayNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
@@ -156,7 +156,7 @@ export interface LocationSchedule {
 
 // describes the schedule for a given course across multiple locations
 export interface CourseSchedule {
-  courseInfo: CourseInfo
+  course: Course
   locationSchedules: LocationSchedule[]
 }
 

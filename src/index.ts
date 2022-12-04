@@ -25,7 +25,7 @@ import {
   ApiErrorResponse,
   CourseCatalog,
   Shift,
-  CourseInfo,
+  Course,
   LocationSchedule,
   DailySchedule,
   CourseSchedule,
@@ -211,9 +211,9 @@ function bin (
 ): Schedule {
   // create empty schedule
   const binnedSchedule: Schedule = []
-  courses.forEach((course: CourseInfo) => {
+  courses.forEach((course: Course) => {
     const courseSchedule: CourseSchedule = {
-      courseInfo: course,
+      course,
       locationSchedules: []
     }
     locations.forEach((location: string) => {
@@ -238,7 +238,7 @@ function bin (
       const relevantCourseSchedule = binnedSchedule.find(
         (courseSchedule: CourseSchedule) => {
           return (
-            courseSchedule.courseInfo.matchScore(courseGiven) > 0.9
+            courseSchedule.course.matchScore(courseGiven) > 0.9
           ) // TODO: consider the matchString  threshold
         }
       )
@@ -278,7 +278,7 @@ async function getCourseCatalog (): Promise<CourseCatalog> {
     const data = await fs.readFile('./courseCatalog.csv')
     const courseCatalog: CourseCatalog = []
     data.toString().split('\n').forEach((courseAbbreviation: string) => {
-      courseCatalog.push(new CourseInfo(
+      courseCatalog.push(new Course(
         '',
         '',
         '',
@@ -381,13 +381,13 @@ app.post('/api/schedule', (req, res) => {
 
     const schedule: Schedule = bin(courseCatalog, locations, allShifts)
 
-    courseCatalog.forEach((courseInfo) => {
+    courseCatalog.forEach((course) => {
       locations.forEach((location) => {
         [0, 1, 2, 3, 4, 5, 6].forEach((weekDay) => {
           const courseSchedule = schedule.find((courseSchedule) => {
             return (
-              courseSchedule.courseInfo.abbreviation ===
-                            courseInfo.abbreviation
+              courseSchedule.course.abbreviation ===
+                            course.abbreviation
             )
           })
           if (courseSchedule == null) {
