@@ -15,9 +15,6 @@ const TableRow: React.FC<{
   const buttons = showButtons
     ? (
     <th className="flex gap-2 flex-row-reverse">
-      <button className="btn btn-ghost text-lg btn-square text-red-500">
-        <FaRegTrashAlt></FaRegTrashAlt>
-      </button>
       <button className="btn btn-ghost text-lg btn-square">
         <FaRegEdit></FaRegEdit>
       </button>
