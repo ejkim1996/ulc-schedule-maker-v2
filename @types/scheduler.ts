@@ -220,3 +220,11 @@ export interface ApiScheduleRequest {
   calendars: CalendarInfo[]
   stagingWeek: Date // date of week's Sunday
 }
+
+export interface User {
+  uid: string
+  name: string
+  emails: string[]
+  isAdmin: boolean
+  isStudent: boolean
+}

@@ -5,7 +5,6 @@ import express, {
   NextFunction
 } from 'express'
 import path from 'path'
-import mongoose from 'mongoose'
 import passport from 'passport'
 import session from 'express-session'
 import * as dotenv from 'dotenv'
@@ -29,17 +28,16 @@ import {
   DailySchedule,
   CourseSchedule,
   DayNumber,
-  ApiSuccessResponse
+  ApiSuccessResponse,
+  User as ScheduleUser
 } from '../@types/scheduler'
-import { CourseModel } from './db'
-// import { CourseModel } from './db'
+import { CourseModel, UserModel as ScheduleUserModel } from './db'
 
 dotenv.config()
 
 declare module 'express-session' {
   interface SessionData {
     accessToken: string
-    destination: string
   }
 }
 
@@ -53,6 +51,7 @@ function isLoggedIn (req: Request, res: Response, next: NextFunction): void {
 app.use(express.static(path.join(__dirname, 'client/build')))
 app.use(session({
   resave: false,
+  saveUninitialized: false,
   secret: process.env.SESSION_SECRET as string,
   store: MongoStore.create({
     mongoUrl: process.env.MONGODB_URI as string
@@ -73,17 +72,6 @@ app.get('/api/test', (_, res: Response) => {
   }
 
   res.json(test)
-})
-
-app.get('/api/db_test', (_, res: Response) => {
-  try {
-    // Connect to the MongoDB cluster
-    mongoose.connect(process.env.MONGODB_URI as string, () =>
-      res.send('Mongoose is connected')
-    )
-  } catch (e) {
-    res.send('could not connect')
-  }
 })
 
 app.get('/login', (_, res) => {
@@ -118,23 +106,46 @@ app.get('/google/callback',
 )
 
 app.get('/api/auth/successRedirect', (req, res) => {
-  req.session.accessToken = req.user?.accessToken
-  req.session.save((err) => {
-    if (err !== undefined && err !== null) {
-      const errorMessage: string = err.toString()
-      console.log(`Access Token not saved: ${errorMessage}`)
-    }
-  })
+  if (req.user == null) {
+    res.status(500)
+    res.json(new ApiErrorResponse('User object not saved.'))
+    return
+  }
+
+  // save access token to session
+  req.session.accessToken = req.user.accessToken
+  req.session.save(console.log)
+
+  // register user
+  const emails: string[] = req.user.profile.emails?.filter((email) => email.verified).map((email) => email.value) ?? []
+  ScheduleUserModel.findOneAndUpdate<ScheduleUser>({ uid: req.user.profile.id }, {
+    name: req.user.profile.displayName,
+    emails
+  }, {
+    upsert: true,
+    setDefaultsOnInsert: true,
+    new: true
+  }).catch(console.log)
+
   res.redirect('/scheduler')
 })
 
-app.get('/api/protected', isLoggedIn, (req, res) => {
-  const test = {
-    name: req.user?.profile.displayName,
-    accessToken: req.user?.accessToken
-  }
+app.get('/api/user', isLoggedIn, (req, res) => {
+  (async (req, res) => {
+    const user = await ScheduleUserModel.findOne<ScheduleUser>({ uid: req.user?.profile.id }, { _id: 0, __v: 0 })
 
-  res.json(test)
+    if (user == null) {
+      res.status(500)
+      res.json(new ApiErrorResponse('Current user not found.'))
+      return
+    }
+
+    res.json(new ApiSuccessResponse(user))
+  })(req, res).catch((err) => {
+    console.log(err)
+    res.status(500)
+    res.json(new ApiErrorResponse('Unknown database error'))
+  })
 })
 
 app.get('/api/calendars', (req, res) => {
