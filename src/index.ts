@@ -38,6 +38,7 @@ dotenv.config()
 declare module 'express-session' {
   interface SessionData {
     accessToken: string
+    user: ScheduleUser
   }
 }
 
@@ -45,7 +46,38 @@ const app: Express = express()
 const port = process.env.PORT ?? 3001
 
 function isLoggedIn (req: Request, res: Response, next: NextFunction): void {
-  (req.user != null) ? next() : res.sendStatus(401)
+  if (req.session.user == null) {
+    res.status(401)
+    res.json(new ApiErrorResponse('User is not logged in.'))
+    return
+  }
+  next()
+}
+
+function isAdmin (req: Request, res: Response, next: NextFunction): void {
+  (async (req, res) => {
+    if (req.session.user == null) {
+      res.status(401)
+      res.json(new ApiErrorResponse('User is not logged in.'))
+      return
+    }
+
+    // check for changes to admin status in the database in case changes have happened while seession is active
+    req.session.user = await ScheduleUserModel.findOne<ScheduleUser>({ uid: req.session.user.uid }, { _id: 0, __v: 0 }) ?? req.session.user
+    req.session.save()
+
+    if (!req.session.user.isAdmin) {
+      res.status(403)
+      res.json(new ApiErrorResponse('User is not an admin.'))
+      return
+    }
+
+    next()
+  })(req, res).catch((err) => {
+    console.log(err)
+    res.status(500)
+    res.json(new ApiErrorResponse('Unknown database error while checking if user is admin'))
+  })
 }
 
 app.use(express.static(path.join(__dirname, 'client/build')))
@@ -62,23 +94,12 @@ app.use(passport.session())
 app.use(express.json())
 app.use(cors())
 
-app.get('/', (_, res: Response) => {
-  res.send('test')
-})
-
-app.get('/api/test', (_, res: Response) => {
-  const test = {
-    data: 'this is some data'
-  }
-
-  res.json(test)
-})
-
 app.get('/login', (_, res) => {
   res.send("<a href='/auth/google'>Authenticate with Google</a>")
 })
 
 app.post('logout', (req, res, next) => {
+  req.session.destroy(() => {})
   req.logout((err) => {
     if (err as boolean) {
       return next(err)
@@ -106,28 +127,35 @@ app.get('/google/callback',
 )
 
 app.get('/api/auth/successRedirect', (req, res) => {
-  if (req.user == null) {
+  (async (req, res) => {
+    if (req.user == null) {
+      res.status(500)
+      res.json(new ApiErrorResponse('User object not saved.'))
+      return
+    }
+
+    // register user
+    const emails: string[] = req.user.profile.emails?.filter((email) => email.verified).map((email) => email.value) ?? []
+    const user = await ScheduleUserModel.findOneAndUpdate<ScheduleUser>({ uid: req.user.profile.id }, {
+      name: req.user.profile.displayName,
+      emails
+    }, {
+      upsert: true,
+      setDefaultsOnInsert: true,
+      new: true
+    })
+
+    // save access token to session
+    req.session.accessToken = req.user.accessToken
+    req.session.user = user
+    req.session.save()
+
+    res.redirect('/scheduler')
+  })(req, res).catch((err) => {
+    console.log(err)
     res.status(500)
-    res.json(new ApiErrorResponse('User object not saved.'))
-    return
-  }
-
-  // save access token to session
-  req.session.accessToken = req.user.accessToken
-  req.session.save(console.log)
-
-  // register user
-  const emails: string[] = req.user.profile.emails?.filter((email) => email.verified).map((email) => email.value) ?? []
-  ScheduleUserModel.findOneAndUpdate<ScheduleUser>({ uid: req.user.profile.id }, {
-    name: req.user.profile.displayName,
-    emails
-  }, {
-    upsert: true,
-    setDefaultsOnInsert: true,
-    new: true
-  }).catch(console.log)
-
-  res.redirect('/scheduler')
+    res.json(new ApiErrorResponse('Unknown server error while handling authentication.'))
+  })
 })
 
 app.get('/api/user', isLoggedIn, (req, res) => {
@@ -321,7 +349,7 @@ app.get('/api/course-catalog', (req, res) => {
     })
 })
 
-app.post('/api/course-catalog/add', (req, res) => {
+app.post('/api/course-catalog/add', isAdmin, (req, res) => {
   (async (req, res) => {
     const newCourse = new Course(
       req.body.name,
@@ -341,7 +369,7 @@ app.post('/api/course-catalog/add', (req, res) => {
     })
 })
 
-app.post('/api/course-catalog/support', (req, res) => {
+app.post('/api/course-catalog/support', isAdmin, (req, res) => {
   (async (req, res) => {
     if (req.query.uid == null) {
       res.status(400)
@@ -367,7 +395,7 @@ app.post('/api/course-catalog/support', (req, res) => {
     })
 })
 
-app.post('/api/course-catalog/update', (req, res) => {
+app.post('/api/course-catalog/update', isAdmin, (req, res) => {
   (async (req, res) => {
     if (req.body.uid == null) {
       res.status(400)
@@ -392,7 +420,7 @@ app.post('/api/course-catalog/update', (req, res) => {
     })
 })
 
-app.delete('/api/course-catalog', (req, res) => {
+app.delete('/api/course-catalog', isAdmin, (req, res) => {
   (async (req, res) => {
     if (req.query.uid == null) {
       res.status(400)
@@ -417,7 +445,7 @@ app.delete('/api/course-catalog', (req, res) => {
     })
 })
 
-app.post('/api/schedule', (req, res) => {
+app.post('/api/schedule', isAdmin, (req, res) => {
   void (async (req, res) => {
     // check if there's a user
     let accessToken = ''
