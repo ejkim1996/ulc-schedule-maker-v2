@@ -10,6 +10,7 @@ import session from 'express-session'
 import * as dotenv from 'dotenv'
 import cors from 'cors'
 import MongoStore from 'connect-mongo'
+import { Error } from 'mongoose'
 
 import './auth'
 import { calendar_v3 } from '@googleapis/calendar'
@@ -398,6 +399,12 @@ app.post('/api/course-catalog/add', isAdmin, (req, res) => {
     res.json(new ApiSuccessResponse(null))
   })(req, res)
     .catch((err) => {
+      if (err instanceof Error.ValidationError) {
+        const missingFields: string[] = Object.getOwnPropertyNames(err.errors)
+        res.status(400)
+        res.json(new ApiErrorResponse(`The following fields are missing: ${missingFields.join(', ')}`, { missingFields }))
+        return
+      }
       console.log(err)
       res.status(500)
       res.json(new ApiErrorResponse('Unknown database error'))
