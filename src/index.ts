@@ -97,7 +97,7 @@ app.use(passport.session())
 app.use(cors())
 
 app.post('/logout', (req, res) => {
-  req.logout((err) => {
+  req.session.destroy((err) => {
     if (err as boolean) {
       console.log(err)
       res.status(500)

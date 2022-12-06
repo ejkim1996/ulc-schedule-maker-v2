@@ -204,14 +204,11 @@ export class ApiErrorResponse implements ApiResponseInterface {
   status = ApiStatus.Error
   message: string
 
-  constructor (public error: string | Error, public data?: any) {
+  constructor (error: string | Error, public data?: any) {
     if (error instanceof Error) {
       this.message = error.message
     } else {
       this.message = error
-    }
-    if (data != null) {
-      this.data = data
     }
   }
 }
