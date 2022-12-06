@@ -96,10 +96,6 @@ app.use(passport.initialize())
 app.use(passport.session())
 app.use(cors())
 
-app.get('/login', (_, res) => {
-  res.send("<a href='/auth/google'>Authenticate with Google</a>")
-})
-
 app.post('/logout', (req, res) => {
   req.logout((err) => {
     if (err as boolean) {
@@ -126,7 +122,7 @@ app.get(
 app.get('/google/callback',
   passport.authenticate('google', {
     successRedirect: `${process.env.FE_URL ?? ''}/api/auth/successRedirect`,
-    failureRedirect: '/auth/failure'
+    failureRedirect: '/api/auth/failure'
   })
 )
 
@@ -188,7 +184,7 @@ app.post('/api/users/admin', isAdmin, (req, res) => {
       return
     }
     const isAdmin = req.query.isAdmin ?? true
-    const user = await ScheduleUserModel.findOneAndUpdate({ uid: req.query.uid }, { isAdmin }, { new: true })
+    const user = await ScheduleUserModel.findOneAndUpdate<ScheduleUser>({ uid: req.query.uid }, { isAdmin }, { new: true })
 
     if (user == null) {
       res.status(404)
@@ -201,6 +197,17 @@ app.post('/api/users/admin', isAdmin, (req, res) => {
     console.log(err)
     res.status(500)
     res.json(new ApiErrorResponse('Unknown error while adding admin'))
+  })
+})
+
+app.get('/api/users', isAdmin, (req, res) => {
+  (async (req, res) => {
+    const users = await ScheduleUserModel.find<ScheduleUser>({})
+    res.json(new ApiSuccessResponse(users))
+  })(req, res).catch((err) => {
+    console.log(err)
+    res.status(500)
+    res.json(new ApiErrorResponse('Unknown error while getting users'))
   })
 })
 
@@ -264,7 +271,7 @@ app.get('/api/calendars', (req, res) => {
   })(req, res)
 })
 
-app.get('/auth/failure', (_, res) => {
+app.get('/api/auth/failure', (_, res) => {
   res.status(403)
   res.json(
     new ApiErrorResponse(
