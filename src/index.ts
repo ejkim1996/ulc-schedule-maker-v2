@@ -86,25 +86,29 @@ app.use(session({
   saveUninitialized: false,
   secret: process.env.SESSION_SECRET as string,
   store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI as string
+    mongoUrl: process.env.MONGODB_URI as string,
+    autoRemove: 'interval',
+    autoRemoveInterval: 3600
   })
 }))
+app.use(express.json())
 app.use(passport.initialize())
 app.use(passport.session())
-app.use(express.json())
 app.use(cors())
 
 app.get('/login', (_, res) => {
   res.send("<a href='/auth/google'>Authenticate with Google</a>")
 })
 
-app.post('logout', (req, res, next) => {
-  req.session.destroy(() => {})
+app.post('/logout', (req, res) => {
   req.logout((err) => {
     if (err as boolean) {
-      return next(err)
+      console.log(err)
+      res.status(500)
+      res.json(new ApiErrorResponse('Error logging out.'))
+      return
     }
-    res.send('Goodbye!')
+    res.json(new ApiSuccessResponse(null))
   })
 })
 
@@ -158,7 +162,7 @@ app.get('/api/auth/successRedirect', (req, res) => {
   })
 })
 
-app.get('/api/user', isLoggedIn, (req, res) => {
+app.get('/api/users/me', isLoggedIn, (req, res) => {
   (async (req, res) => {
     const user = await ScheduleUserModel.findOne<ScheduleUser>({ uid: req.user?.profile.id }, { _id: 0, __v: 0 })
 
@@ -173,6 +177,30 @@ app.get('/api/user', isLoggedIn, (req, res) => {
     console.log(err)
     res.status(500)
     res.json(new ApiErrorResponse('Unknown database error'))
+  })
+})
+
+app.post('/api/users/admin', isAdmin, (req, res) => {
+  (async (req, res) => {
+    if (req.query.uid == null) {
+      res.status(400)
+      res.json(new ApiErrorResponse('No uid provided. Please provide a uid.'))
+      return
+    }
+    const isAdmin = req.query.isAdmin ?? true
+    const user = await ScheduleUserModel.findOneAndUpdate({ uid: req.query.uid }, { isAdmin }, { new: true })
+
+    if (user == null) {
+      res.status(404)
+      res.json(new ApiErrorResponse('User with this uid not found. Please try a different uid.'))
+      return
+    }
+
+    res.json(new ApiSuccessResponse(user))
+  })(req, res).catch((err) => {
+    console.log(err)
+    res.status(500)
+    res.json(new ApiErrorResponse('Unknown error while adding admin'))
   })
 })
 
