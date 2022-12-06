@@ -65,7 +65,7 @@ const AddCourseModal: React.FC = () => {
     await mutate('/api/course-catalog/supported')
   }
 
-  const tableRows = courses.slice(0, 10).map((course) => {
+  const tableRows = courses.slice(0, 20).map((course) => {
     return (
       <TableRow
         course={course}
@@ -77,7 +77,7 @@ const AddCourseModal: React.FC = () => {
   })
 
   return (
-    <div className="modal-box max-w-full flex flex-col gap-4 relative">
+    <div className="modal-box max-w-full flex flex-col gap-4 relative overflow-visible">
       <a href="#" className="btn btn-sm btn-circle absolute right-2 top-2">
         ✕
       </a>
@@ -117,15 +117,6 @@ const AddCourseModal: React.FC = () => {
           </thead>
           <tbody>{search.length !== 0 ? tableRows : <></>}</tbody>
         </table>
-      </div>
-      <input type="checkbox" id="form-modal" className="modal-toggle" />
-      <div className="modal" data-theme="emerald">
-        <div className="modal-box max-w-full flex flex-col gap-4 relative">
-          <label htmlFor="form-modal" className="btn btn-sm btn-circle absolute right-2 top-2">
-            ✕
-          </label>
-          <h1 className="text-2xl font-bold">Create Course</h1>
-        </div>
       </div>
     </div>
   )

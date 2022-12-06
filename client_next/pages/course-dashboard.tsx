@@ -3,9 +3,10 @@ import { NextPage } from 'next'
 import { useState } from 'react'
 import useSWR from 'swr'
 import { Course } from '../../@types/scheduler'
-import { FaRegEdit, FaRegTrashAlt, FaPlus } from 'react-icons/fa'
+import { FaPlus } from 'react-icons/fa'
 import AddCourseModal from '../components/add-course-modal'
 import TableRow from '../components/dashboard-table-row'
+import CreateCourseForm from '../components/create-course-form'
 
 const CourseDashboard: NextPage = () => {
   const [searchText, setSearchText] = useState<string>('')
@@ -119,6 +120,10 @@ const CourseDashboard: NextPage = () => {
       </div>
       <div className="modal" id="my-modal-2" data-theme="emerald">
         <AddCourseModal></AddCourseModal>
+      </div>
+      <input type="checkbox" id="form-modal" className="modal-toggle" />
+      <div className="modal" data-theme="emerald">
+        <CreateCourseForm course={undefined} editMode={false}></CreateCourseForm>
       </div>
     </div>
   )
