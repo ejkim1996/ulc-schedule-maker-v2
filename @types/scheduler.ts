@@ -96,7 +96,6 @@ export class Interval implements IntervalInterface {
 export class Shift extends Interval {
   // the names of the courses the tutor is available to tutor
   // given in the ulc abbreviation and may contain input errors
-  // TODO: i'm not really sure about the naming of this property
   coursesGiven: string[] = []
   location: string
 
@@ -152,7 +151,6 @@ export interface DailySchedule {
 }
 
 // describes the schedule (of one specific course) for a given location
-// TODO: is this better as 'location' or 'label'?
 export interface LocationSchedule {
   location: string
   dailySchedules: DailySchedule[]

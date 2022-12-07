@@ -5,33 +5,30 @@ import express, {
   NextFunction
 } from 'express'
 import path from 'path'
-import passport from 'passport'
 import session from 'express-session'
 import * as dotenv from 'dotenv'
 import cors from 'cors'
-import MongoStore from 'connect-mongo'
+import passport from 'passport'
 import { Error } from 'mongoose'
+import MongoStore from 'connect-mongo'
 
-import './auth'
 import { calendar_v3 } from '@googleapis/calendar'
+import Events = calendar_v3.Schema$Events
 import Event = calendar_v3.Schema$Event
 import CalendarList = calendar_v3.Schema$CalendarListEntry
-import { getClassSchedule } from './algo'
+
 import {
-  Interval,
   CalendarInfo,
   Schedule,
   ApiErrorResponse,
   CourseCatalog,
   Shift,
   Course,
-  LocationSchedule,
-  DailySchedule,
-  CourseSchedule,
-  DayNumber,
   ApiSuccessResponse,
   User as ScheduleUser
 } from '../@types/scheduler'
+import './auth'
+import { getClassSchedule, bin } from './algo'
 import { CourseModel, UserModel as ScheduleUserModel } from './db'
 
 dotenv.config()
@@ -45,6 +42,8 @@ declare module 'express-session' {
 
 const app: Express = express()
 const port = process.env.PORT ?? 3001
+
+// -------------------------- MIDDLEWARE ---------------------------------
 
 function isLoggedIn (req: Request, res: Response, next: NextFunction): void {
   if (req.session.user == null) {
@@ -96,6 +95,8 @@ app.use(express.json())
 app.use(passport.initialize())
 app.use(passport.session())
 app.use(cors())
+
+// ------------------------------- AUTHORIZATION AND AUTHENTICATION ENDPOINTS ---------------------------
 
 app.post('/logout', (req, res) => {
   req.session.destroy((err) => {
@@ -159,6 +160,13 @@ app.get('/api/auth/successRedirect', (req, res) => {
   })
 })
 
+app.get('/api/auth/failure', (req, res) => {
+  res.status(403)
+  res.json(new ApiErrorResponse('Failed to log in. Navigate to /login and try again.'))
+})
+
+// ---------------------------------- USER INFORMATION ENDPOINTS ------------------------------
+
 app.get('/api/users/me', isLoggedIn, (req, res) => {
   (async (req, res) => {
     const user = await ScheduleUserModel.findOne<ScheduleUser>({ uid: req.user?.profile.id }, { _id: 0, __v: 0 })
@@ -212,154 +220,7 @@ app.get('/api/users', isAdmin, (req, res) => {
   })
 })
 
-app.get('/api/calendars', (req, res) => {
-  void (async (req, res) => {
-    // check if there's a user
-    let accessToken = ''
-    if (req.user != null) {
-      accessToken = req.user.accessToken
-    } else if (req.session.accessToken != null) {
-      accessToken = req.session.accessToken
-    } else {
-      console.log('There is no session or user.') // TODO: make this redirect in front end
-    }
-
-    const url =
-            'https://www.googleapis.com/calendar/v3/users/me/calendarList?access_token=' +
-            accessToken
-
-    // TODO: catch errors
-    const rawData = await fetch(url, {
-      method: 'GET'
-    })
-
-    // catch errors
-    const responseStatus = rawData.status
-    if (responseStatus >= 400) {
-      if (responseStatus === 401) {
-        // invalid credentials
-        res.status(401)
-        res.json(new ApiErrorResponse('Login failed. Invalid Credentials'))
-        return
-      } else if (responseStatus === 500) {
-        // google server error
-        res.status(500)
-        res.json(new ApiErrorResponse('Google dun goofed.'))
-        return
-      }
-
-      res.status(500)
-      res.json(
-        new ApiErrorResponse(
-          'Unknown error while retrieving calendar events.'
-        )
-      )
-      return
-    }
-
-    const data = await rawData.json()
-    const calendarLists: CalendarList[] = data?.items ?? []
-
-    const calendarInfos: CalendarInfo[] = calendarLists.map((calendarList) => {
-      const calendarInfo: CalendarInfo = {
-        id: calendarList.id ?? '',
-        name: calendarList.summary ?? ''
-      }
-      return calendarInfo
-    })
-
-    res.json(calendarInfos)
-  })(req, res)
-})
-
-app.get('/api/auth/failure', (_, res) => {
-  res.status(403)
-  res.json(
-    new ApiErrorResponse(
-      'Failed to log in. Navigate to /login and try again.'
-    )
-  )
-})
-
-function bin (
-  courses: CourseCatalog,
-  locations: string[],
-  shifts: Shift[]
-): Schedule {
-  // create empty schedule
-  const binnedSchedule: Schedule = []
-  courses.forEach((course: Course) => {
-    const courseSchedule: CourseSchedule = {
-      course,
-      locationSchedules: []
-    }
-    locations.forEach((location: string) => {
-      const locationSchedule: LocationSchedule = {
-        location,
-        dailySchedules: []
-      };
-      [0, 1, 2, 3, 4, 5, 6].forEach((weekDay: number) => {
-        locationSchedule.dailySchedules.push({
-          weekDay: weekDay as DayNumber,
-          intervals: []
-        })
-      })
-      courseSchedule.locationSchedules.push(locationSchedule)
-    })
-    binnedSchedule.push(courseSchedule)
-  })
-
-  // populate the schedule with the relevant intervals
-  shifts.forEach((shift: Shift) => {
-    shift.coursesGiven.forEach((courseGiven: string) => {
-      const relevantCourseSchedule = binnedSchedule.find(
-        (courseSchedule: CourseSchedule) => {
-          return (
-            courseSchedule.course.matchScore(courseGiven) > 0.9
-          ) // TODO: consider the matchString  threshold
-        }
-      )
-      if (relevantCourseSchedule == null) {
-        return
-      }
-      const relevantLocationSchedule =
-                relevantCourseSchedule.locationSchedules.find(
-                  (locationSchedule: LocationSchedule) => {
-                    return shift.location === locationSchedule.location
-                  }
-                )
-      if (relevantLocationSchedule == null) {
-        return
-      }
-      const relevantDailySchedule =
-                relevantLocationSchedule.dailySchedules.find(
-                  (dailySchedule: DailySchedule) => {
-                    return shift.weekDay === dailySchedule.weekDay
-                  }
-                )
-      if (relevantDailySchedule != null) {
-        relevantDailySchedule.intervals.push(
-          new Interval(shift.start, shift.end)
-        )
-        // TODO: can we just have shift.interval? maybe it doesn't need to extend
-      }
-    })
-  })
-  return binnedSchedule
-}
-
-async function getSupportedCourseCatalog (): Promise<CourseCatalog> {
-  // returns the source of truth list of all courses
-  try {
-    const supportedCourses: Course[] = await CourseModel.find<Course>({ supported: true }, { _id: 0, __v: 0 })
-    return supportedCourses.map((course) => {
-      return new Course(course.name, course.school, course.courseId, course.department, course.supported, course.abbreviation, course.uid)
-    })
-  } catch (e) {
-    console.log(e)
-    return []
-  }
-}
+// ----------------------------- COURSE CATALOG ENDPOINTS -----------------------------
 
 app.get('/api/course-catalog/supported', (req, res) => {
   (async (req, res) => {
@@ -487,8 +348,78 @@ app.delete('/api/course-catalog', isAdmin, (req, res) => {
     })
 })
 
+// ----------------------------------- SCHEDULING ENDPOINTS -----------------------------------
+
+async function getSupportedCourseCatalog (): Promise<CourseCatalog> {
+  // returns the source of truth list of all courses
+  try {
+    const supportedCourses: Course[] = await CourseModel.find<Course>({ supported: true }, { _id: 0, __v: 0 })
+    return supportedCourses.map((course) => {
+      return new Course(course.name, course.school, course.courseId, course.department, course.supported, course.abbreviation, course.uid)
+    })
+  } catch (e) {
+    console.log(e)
+    return []
+  }
+}
+
+app.get('/api/calendars', isLoggedIn, (req, res) => {
+  (async (req, res) => {
+    // check if there's a user
+    const accessToken = req.session.accessToken ?? ''
+    const url =
+            'https://www.googleapis.com/calendar/v3/users/me/calendarList?access_token=' +
+            accessToken
+
+    const rawData = await fetch(url, {
+      method: 'GET'
+    })
+
+    // catch errors
+    const responseStatus = rawData.status
+
+    if (responseStatus === 401) {
+      // invalid credentials
+      res.status(401)
+      res.json(new ApiErrorResponse('Login failed. Invalid Credentials'))
+      return
+    }
+
+    if (responseStatus === 500) {
+      // google server error
+      res.status(500)
+      res.json(new ApiErrorResponse('Google dun goofed.'))
+      return
+    }
+
+    if (responseStatus >= 400) {
+      res.status(500)
+      res.json(new ApiErrorResponse('Unknown error while retrieving calendar events.'))
+      return
+    }
+
+    const data = await rawData.json()
+    const calendarLists: CalendarList[] = data?.items ?? []
+
+    const calendarInfos: CalendarInfo[] = calendarLists.map((calendarList) => {
+      const calendarInfo: CalendarInfo = {
+        id: calendarList.id ?? '',
+        name: calendarList.summary ?? ''
+      }
+      return calendarInfo
+    })
+
+    res.json(calendarInfos)
+  })(req, res)
+    .catch((err) => {
+      console.log(err)
+      res.status(500)
+      res.json(new ApiErrorResponse('Unknown server error.'))
+    })
+})
+
 app.post('/api/schedule', isAdmin, (req, res) => {
-  void (async (req, res) => {
+  (async (req, res) => {
     // check if there's a user
     let accessToken = ''
     if (req.user != null) {
@@ -525,48 +456,36 @@ app.post('/api/schedule', isAdmin, (req, res) => {
 
       // catch errors
       const responseStatus = data.status
-      if (responseStatus >= 400) {
-        if (responseStatus === 401) {
-          // invalid credentials
-          res.status(401)
-          res.json(
-            new ApiErrorResponse(
-              'Invalid Credentials. Navigate to /login and login through Google again.'
-            )
-          )
-          return
-        } else if (responseStatus === 404) {
-          // invalid id error
-          res.status(404)
-          res.json(
-            new ApiErrorResponse(
-                            `${name} calendar not found. Double check that your calendars are not deleted.`
-            )
-          )
-          return
-        } else if (responseStatus === 500) {
-          // google server error
-          res.status(500)
-          res.json(
-            new ApiErrorResponse(
-              'Google backend error. Please try again in a few minutes.'
-            )
-          )
-          return
-        }
 
-        res.status(500)
-        res.json(
-          new ApiErrorResponse(
-            'Unknown error while retrieving calendar events.'
-          )
-        )
+      if (responseStatus === 401) {
+        // invalid credentials
+        res.status(401)
+        res.json(new ApiErrorResponse('Invalid Credentials. Navigate to /login and login through Google again.'))
         return
       }
 
-      // TODO: change this any
-      const eventJson: any = await data.json()
-      const eventList: Event[] = eventJson.items
+      if (responseStatus === 404) {
+        // invalid id error
+        res.status(404)
+        res.json(new ApiErrorResponse(`${name} calendar not found. Double check that your calendars are not deleted.`))
+        return
+      }
+
+      if (responseStatus === 500) {
+        // google server error
+        res.status(500)
+        res.json(new ApiErrorResponse('Google backend error. Please try again in a few minutes.'))
+        return
+      }
+
+      if (responseStatus >= 400) {
+        res.status(500)
+        res.json(new ApiErrorResponse('Unknown error while retrieving calendar events.'))
+        return
+      }
+
+      const eventJson: Events = await data.json()
+      const eventList: Event[] = eventJson.items ?? []
 
       eventList.forEach((event) => {
         if (event.status != null && event.status !== 'cancelled') { allShifts.push(new Shift(event, name)) }
@@ -611,6 +530,11 @@ app.post('/api/schedule', isAdmin, (req, res) => {
 
     res.json(schedule)
   })(req, res)
+    .catch((err) => {
+      console.log(err)
+      res.status(500)
+      res.json(new ApiErrorResponse('Unknown server error. Please contact ULC developers.'))
+    })
 })
 
 app.listen(port, () => {
