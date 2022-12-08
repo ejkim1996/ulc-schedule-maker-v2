@@ -8,7 +8,6 @@ const CreateCourseForm: React.FC<{
 }> = ({ course, editMode }) => {
   // const [course, setCourse] = useState(new Course('', '', '', '', true, undefined, undefined))
   const [name, setName] = useState(() => {
-    console.log('COURSE UNDEFINED' + JSON.stringify(course))
     return course !== undefined ? course.name : ''
   })
   const [abbreviation, setAbbreviation] = useState(() =>

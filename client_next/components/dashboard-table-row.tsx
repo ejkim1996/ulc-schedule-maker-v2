@@ -1,4 +1,4 @@
-import { FaRegEdit, FaRegTrashAlt } from 'react-icons/fa'
+import { FaRegEdit } from 'react-icons/fa'
 import { Course } from '../../@types/scheduler'
 import CreateCourseForm from './create-course-form'
 

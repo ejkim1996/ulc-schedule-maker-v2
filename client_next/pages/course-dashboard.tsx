@@ -66,12 +66,14 @@ const CourseDashboard: NextPage = () => {
     })
     .map((course) => {
       return (
-        <TableRow
-          course={course}
-          updateFn={editCallback}
-          showButtons={true}
-          key={course.uid}
-        ></TableRow>
+        <>
+          <TableRow
+            course={course}
+            updateFn={editCallback}
+            showButtons={true}
+            key={course.uid}
+          ></TableRow>
+        </>
       )
     })
 
@@ -89,7 +91,6 @@ const CourseDashboard: NextPage = () => {
           onChange={(e) => {
             setSearchText(e.target.value)
           }}
-          value={searchText}
         />
         <a
           href="#my-modal-2"
@@ -123,7 +124,10 @@ const CourseDashboard: NextPage = () => {
       </div>
       <input type="checkbox" id="form-modal" className="modal-toggle" />
       <div className="modal" data-theme="emerald">
-        <CreateCourseForm course={undefined} editMode={false}></CreateCourseForm>
+        <CreateCourseForm
+          course={undefined}
+          editMode={false}
+        ></CreateCourseForm>
       </div>
     </div>
   )
