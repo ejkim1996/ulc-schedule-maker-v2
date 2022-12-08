@@ -12,18 +12,6 @@ export interface Interval {
   end: Date
 }
 
-// interface CourseInfoInterface {
-//   name?: string // the official albert name
-//   code?: string // eg CSCI-UA 101
-//   abbreviation: string // the abbreviation used for the ulc calendar
-//   department?: string
-
-//   // the likelihood that a given course (ie the course a student types into their event description)
-//   // actually is this course
-//   // returns a number between 0 and 1
-//   matchScore: (courseGiven: string) => number
-// }
-
 interface CourseInterface {
   supported: boolean // if the ulc provides tutoring for this class
   abbreviation: string | undefined // the ulc abbreviation
@@ -58,7 +46,7 @@ export class Course implements CourseInterface {
     this.uid = uid ?? v4()
   }
 
-  // this is our current implementation
+  // TODO: have a fuzzier way to match a course
   matchScore (courseGiven: string): number {
     if (this.supported) {
       return courseGiven === this.abbreviation ? 1 : 0

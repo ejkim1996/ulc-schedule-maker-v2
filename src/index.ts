@@ -169,9 +169,10 @@ app.get('/api/auth/failure', (req, res) => {
 
 app.get('/api/users/me', isLoggedIn, (req, res) => {
   (async (req, res) => {
-    const user = await ScheduleUserModel.findOne<ScheduleUser>({ uid: req.user?.profile.id }, { _id: 0, __v: 0 })
+    const user = await ScheduleUserModel.findOne<ScheduleUser>({ uid: req.session.user?.uid }, { _id: 0, __v: 0 })
 
     if (user == null) {
+      console.log(`User with uid ${req.session.user?.uid ?? '<NO UID FOUND>'} found in database.`)
       res.status(500)
       res.json(new ApiErrorResponse('Current user not found.'))
       return
@@ -257,7 +258,7 @@ app.post('/api/course-catalog/add', isAdmin, (req, res) => {
       req.body.abbreviation
     )
     await CourseModel.create(newCourse)
-    res.json(new ApiSuccessResponse(null))
+    res.json(new ApiSuccessResponse(newCourse))
   })(req, res)
     .catch((err) => {
       if (err instanceof Error.ValidationError) {
@@ -284,7 +285,7 @@ app.post('/api/course-catalog/support', isAdmin, (req, res) => {
     const updatedDoc = await CourseModel.findOneAndUpdate<Course>({ uid: req.query.uid }, { supported: newSupported })
 
     if (updatedDoc == null) {
-      res.status(400)
+      res.status(404)
       res.json(new ApiErrorResponse('No course exists with this uid. Please try another one.'))
       return
     }
@@ -309,7 +310,7 @@ app.post('/api/course-catalog/update', isAdmin, (req, res) => {
     const updatedDoc = await CourseModel.findOneAndUpdate<Course>({ uid: req.body.uid }, { ...req.body })
 
     if (updatedDoc == null) {
-      res.status(400)
+      res.status(404)
       res.json(new ApiErrorResponse('No course exists with this uid. Please try another one.'))
       return
     }
@@ -334,7 +335,7 @@ app.delete('/api/course-catalog', isAdmin, (req, res) => {
     const updatedDoc = await CourseModel.findOneAndDelete<Course>({ uid: req.query.uid })
 
     if (updatedDoc == null) {
-      res.status(400)
+      res.status(404)
       res.json(new ApiErrorResponse('No course exists with this uid. Please try another one.'))
       return
     }
@@ -365,7 +366,6 @@ async function getSupportedCourseCatalog (): Promise<CourseCatalog> {
 
 app.get('/api/calendars', isLoggedIn, (req, res) => {
   (async (req, res) => {
-    // check if there's a user
     const accessToken = req.session.accessToken ?? ''
     const url =
             'https://www.googleapis.com/calendar/v3/users/me/calendarList?access_token=' +
@@ -420,13 +420,14 @@ app.get('/api/calendars', isLoggedIn, (req, res) => {
 
 app.post('/api/schedule', isAdmin, (req, res) => {
   (async (req, res) => {
-    // check if there's a user
     let accessToken = ''
     if (req.user != null) {
       accessToken = req.user.accessToken
     } else if (req.session.accessToken != null) {
       accessToken = req.session.accessToken
     }
+
+    // TODO: catch malformed inputs
 
     const {
       calendars: calInfoList,
