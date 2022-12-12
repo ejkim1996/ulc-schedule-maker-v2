@@ -2,9 +2,12 @@ import { Course } from '../../@types/scheduler'
 
 const LaRow: React.FC<{
   course: Course
-}> = ({ course }) => {
+  updateCallback: (c: Course) => Promise<void>
+}> = ({ course, updateCallback }) => {
   const handleCheck = async (): Promise<void> => {
     course.supported = !course.supported
+
+    await updateCallback(course)
   }
 
   return (

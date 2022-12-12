@@ -1,8 +1,7 @@
-
 import { Disclosure } from '@headlessui/react'
 import { CourseSchedule } from '../../@types/scheduler'
-import { FaChevronDown, FaChevronUp, FaCopy, FaCheck } from 'react-icons/fa'
-import { useState } from 'react'
+import { FaChevronDown, FaChevronUp } from 'react-icons/fa'
+import CopyButton from './copy-button'
 
 interface Props {
   course: CourseSchedule
@@ -32,12 +31,8 @@ const Group: React.FC<Props> = ({ course: schedule }) => {
       const scheduleBlock = ls.dailySchedules.map((ds, index) => {
         const intervalString = ds.intervals.reduce(
           (prev: string, curr: Interval) => {
-            const startString = new Date(
-              curr.start
-            ).toLocaleTimeString()
-            const endString = new Date(
-              curr.end
-            ).toLocaleTimeString()
+            const startString = new Date(curr.start).toLocaleTimeString()
+            const endString = new Date(curr.end).toLocaleTimeString()
 
             return prev + `${startString} - ${endString}; `
           },
@@ -46,9 +41,9 @@ const Group: React.FC<Props> = ({ course: schedule }) => {
 
         return intervalString !== ''
           ? (
-                    <li key={index}>
-                        {dayMap.get(ds.weekDay)}: {intervalString}
-                    </li>
+          <li key={index}>
+            {dayMap.get(ds.weekDay)}: {intervalString}
+          </li>
             )
           : null
       })
@@ -56,12 +51,8 @@ const Group: React.FC<Props> = ({ course: schedule }) => {
       const scheduleString = ls.dailySchedules.reduce((prev, curr) => {
         const intervalString = curr.intervals.reduce(
           (prev: string, curr: Interval) => {
-            const startString = new Date(
-              curr.start
-            ).toLocaleTimeString()
-            const endString = new Date(
-              curr.end
-            ).toLocaleTimeString()
+            const startString = new Date(curr.start).toLocaleTimeString()
+            const endString = new Date(curr.end).toLocaleTimeString()
 
             return prev + `${startString} - ${endString}; `
           },
@@ -88,16 +79,17 @@ const Group: React.FC<Props> = ({ course: schedule }) => {
         return prev
       }
       return prev + newString
-    }, ''
+    },
+    ''
   )
 
   const locationJsx = locationStrings.reduce(
     (prev: JSX.Element, curr: LocationString, index) => {
       let newJsx = (
-                <div key={index} className={index !== 0 ? 'mt-2 md:mt-0' : ''}>
-                    <h3 className="font-bold">{curr.location}</h3>
-                    <ul>{curr.schedule}</ul>
-                </div>
+        <div key={index} className={index !== 0 ? 'mt-2 md:mt-0' : ''}>
+          <h3 className="font-bold">{curr.location}</h3>
+          <ul>{curr.schedule}</ul>
+        </div>
       )
 
       const hasValid = curr.schedule.reduce((prev, curr) => {
@@ -112,70 +104,36 @@ const Group: React.FC<Props> = ({ course: schedule }) => {
       }
 
       return (
-                <>
-                    {prev}
-                    {newJsx}
-                </>
+        <>
+          {prev}
+          {newJsx}
+        </>
       )
     },
-        <></>
+    <></>
   )
 
   return (
-        <>
-            <Disclosure key={courseName} as="div" defaultOpen={true}>
-                {({ open }) => (
-                    <>
-                        <Disclosure.Button className="flex w-full justify-between rounded-lg bg-purple-100 px-4 py-2 text-left text-sm font-medium text-purple-900 hover:bg-purple-200 focus:outline-none focus-visible:ring focus-visible:ring-purple-500 focus-visible:ring-opacity-75">
-                            <span>{courseName}</span>
-                            <span className="my-auto">
-                                {open ? <FaChevronUp /> : <FaChevronDown />}
-                            </span>
-                        </Disclosure.Button>
-                        <Disclosure.Panel className="px-4 pt-2 pb-2 text-sm text-gray-500 grid grid-cols-1 md:grid-cols-2 relative">
-                            {locationJsx}
-                            <CopyButton copyText={locationS}></CopyButton>
-                        </Disclosure.Panel>
-                    </>
-                )}
-            </Disclosure>
-        </>
-  )
-}
-
-const CopyButton: React.FC<{ copyText: string }> = ({ copyText }) => {
-  const [isCopied, setIsCopied] = useState(false)
-
-  async function copyTextToClipboard (text: string): Promise<void> {
-    if ('clipboard' in navigator) {
-      await navigator.clipboard.writeText(text)
-    } else {
-      document.execCommand('copy', true, text)
-    }
-  }
-
-  // onClick handler function for the copy button
-  const handleCopyClick = (): void => {
-    // Asynchronously call copyTextToClipboard
-    copyTextToClipboard(copyText)
-      .then(() => {
-        // If successful, update the isCopied state value
-        setIsCopied(true)
-        setTimeout(() => {
-          setIsCopied(false)
-        }, 1500)
-      })
-      .catch((err) => {
-        console.log(err)
-      })
-  }
-
-  return (
-    <div className='absolute top-2 right-0'>
-      <button onClick={handleCopyClick} className="btn btn-square bg-purple-100 hover:bg-purple-200 text-purple-900 border-0">
-        <span>{!isCopied ? <FaCopy /> : <FaCheck />}</span>
-      </button>
-    </div>
+    <>
+      <Disclosure key={courseName} as="div" defaultOpen={true}>
+        {({ open }) => (
+          <>
+            <Disclosure.Button className="flex w-full justify-between rounded-lg bg-purple-100 px-4 py-2 text-left text-sm font-medium text-purple-900 hover:bg-purple-200 focus:outline-none focus-visible:ring focus-visible:ring-purple-500 focus-visible:ring-opacity-75">
+              <span>{courseName}</span>
+              <span className="my-auto">
+                {open ? <FaChevronUp /> : <FaChevronDown />}
+              </span>
+            </Disclosure.Button>
+            <Disclosure.Panel className="px-4 pt-2 pb-2 text-sm text-gray-500 grid grid-cols-1 md:grid-cols-2 relative">
+              {locationJsx}
+              <div className='absolute top-2 right-0'>
+                <CopyButton copyText={locationS}></CopyButton>
+              </div>
+            </Disclosure.Panel>
+          </>
+        )}
+      </Disclosure>
+    </>
   )
 }
 
