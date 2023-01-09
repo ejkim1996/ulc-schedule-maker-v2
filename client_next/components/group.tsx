@@ -31,8 +31,8 @@ const Group: React.FC<Props> = ({ course: schedule }) => {
       const scheduleBlock = ls.dailySchedules.map((ds, index) => {
         const intervalString = ds.intervals.reduce(
           (prev: string, curr: Interval) => {
-            const startString = new Date(curr.start).toLocaleTimeString()
-            const endString = new Date(curr.end).toLocaleTimeString()
+            const startString = new Date(curr.start).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' })
+            const endString = new Date(curr.end).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' })
 
             return prev + `${startString} - ${endString}; `
           },
