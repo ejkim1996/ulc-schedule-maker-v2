@@ -91,8 +91,6 @@ export class Shift extends Interval {
     // NOTE: we only need a single contructor now because EventWrapper
     //       is no longer an alias for a classless interval
 
-    console.log(JSON.stringify(event, undefined, '  '))
-
     const startString = event.start?.dateTime
     const endString = event.end?.dateTime
 
@@ -102,8 +100,6 @@ export class Shift extends Interval {
 
     const startDateTime = new Date(startString)
     const endDateTime = new Date(endString)
-
-    console.log('Dates: ', startDateTime, endDateTime)
 
     super(startDateTime, endDateTime)
     this.location = location
