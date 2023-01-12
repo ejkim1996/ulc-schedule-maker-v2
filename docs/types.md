@@ -48,7 +48,7 @@ interface CourseInterface {
 }
 ```
 
-The `matchScore` method returns a number between 0 and 1 corresponding to the probability that a given course, such as the course name as given by a student's calendar description, actually is this particular course. The current implementation naively matches `courseGiven` to `abberviation` and returns 1 if that is the case and 0 otherwise. Future implementations may opt for a fuzzy-matching algorithm instead.
+The `matchScore` method returns a number between 0 and 1 corresponding to the probability that a given course, such as the course name as given by a student's calendar description, actually is this particular course. The current implementation naively matches `courseGiven` to `abbreviation` and returns 1 if that is the case and 0 otherwise. Future implementations may opt for a fuzzy-matching algorithm instead.
 
 Generally, if `supported` is true, `abbreviation` should not be undefined, since all ULC supported courses should have a ULC preferred abbreviation.
 
@@ -116,7 +116,7 @@ Describes the schedule of one specific course for a given location over every da
 ```typescript
 interface LocationSchedule {
     location: string // the ULC name of the location (eg ARC, UHall)
-    dailySchedules: DailySchedule[] // the schedules for each day the course is tutored at this lcoation
+    dailySchedules: DailySchedule[] // the schedules for each day the course is tutored at this location
 }
 ```
 

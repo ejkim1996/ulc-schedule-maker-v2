@@ -35,7 +35,7 @@ Returns the information of all registered users.
 
 The request requires no body or query parameters, but does require the user to have a valid session and to be an admin.
 
-On success, sends an `ApiSusccessResponse` with data of type [`User[]`](types.md#User).
+On success, sends an `ApiSuccessResponse` with data of type [`User[]`](types.md#User).
 
 Response with status `401` will be sent if the user is not logged in or is not an admin.
 
@@ -88,7 +88,7 @@ Returns an array of all the courses that are marked as supported, that is all th
 
 The request requires no body or query parameters and does not require the user to be logged in or an admin.
 
-On success, sends an `ApiSuccesResponse` with data of type [`CourseCatalog`](./types.md#course-catalog).
+On success, sends an `ApiSuccessResponse` with data of type [`CourseCatalog`](./types.md#course-catalog).
 
 ### `POST /api/course-catalog/add`
 
@@ -107,7 +107,7 @@ The request asks for a request body of type [`Course`](./types.md#course) though
 }
 ```
 
-On success, sends an `ApiSuccessResponse` with data of type [`Course`](./types.md#course). Note that this includes the course's cannonical uid.
+On success, sends an `ApiSuccessResponse` with data of type [`Course`](./types.md#course). Note that this includes the course's canonical uid.
 
 Response with status `400` will be sent if required fields are null or not a part of the body. The response data field will be of the form:
 
