@@ -218,6 +218,6 @@ On success, sends an `ApiSuccessResponse` with data of type [`Schedule`](./types
 
 Response with status `401` will be sent if the user is not logged in, if the user is not an admin, or if the user otherwise does not have a valid access token.
 
-Response with status `404` will be sent if no calendar with a given id is found. This may occur if the user deletes a calendar after calling the `GET /api/calendars` endpoint whose id is used in the request to this endpoint.
+Response with status `404` will be sent if the input is of the incorrect format or if no calendar with a given id is found. This may occur if the user deletes a calendar after calling the `GET /api/calendars` endpoint whose id is used in the request to this endpoint.
 
 Response with status `500` will be sent if Google sends a server error response, if Google sends an unknown error response, or if an unknown error occurs in this API. Check the error message for more details.

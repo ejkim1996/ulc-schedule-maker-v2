@@ -513,12 +513,20 @@ app.post('/api/schedule', isAdmin, (req, res) => {
       accessToken = req.session.accessToken
     }
 
-    // TODO: catch malformed inputs
-
     const {
       calendars: calInfoList,
       stagingWeek
     }: { calendars: CalendarInfo[], stagingWeek: Date } = req.body
+
+    if (calInfoList == null || stagingWeek == null) {
+      res.status(404)
+      res.json(
+        new ApiErrorResponse(
+          'Invalid request body. Request should include calendar information and the staging week.'
+        )
+      )
+      return
+    }
 
     const startTime = new Date(stagingWeek)
     const endTime = new Date(startTime)
