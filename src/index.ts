@@ -1,9 +1,4 @@
-import express, {
-  Express,
-  Request,
-  Response,
-  NextFunction
-} from 'express'
+import express, { Express, Request, Response, NextFunction } from 'express'
 import path from 'path'
 import session from 'express-session'
 import * as dotenv from 'dotenv'
@@ -63,7 +58,11 @@ function isAdmin (req: Request, res: Response, next: NextFunction): void {
     }
 
     // check for changes to admin status in the database in case changes have happened while seession is active
-    req.session.user = await ScheduleUserModel.findOne<ScheduleUser>({ uid: req.session.user.uid }, { _id: 0, __v: 0 }) ?? req.session.user
+    req.session.user =
+      (await ScheduleUserModel.findOne<ScheduleUser>(
+        { uid: req.session.user.uid },
+        { _id: 0, __v: 0 }
+      )) ?? req.session.user
     req.session.save()
 
     if (!req.session.user.isAdmin) {
@@ -76,21 +75,43 @@ function isAdmin (req: Request, res: Response, next: NextFunction): void {
   })(req, res).catch((err) => {
     console.log(err)
     res.status(500)
-    res.json(new ApiErrorResponse('Unknown database error while checking if user is admin'))
+    res.json(
+      new ApiErrorResponse(
+        'Unknown database error while checking if user is admin'
+      )
+    )
   })
 }
 
-app.use(express.static(path.join(__dirname, 'client/build')))
-app.use(session({
-  resave: false,
-  saveUninitialized: false,
-  secret: process.env.SESSION_SECRET as string,
-  store: MongoStore.create({
-    mongoUrl: process.env.MONGODB_URI as string,
-    autoRemove: 'interval',
-    autoRemoveInterval: 3600
+const createLog = (req: Request, res: Response, next: NextFunction): void => {
+  res.on('finish', function () {
+    console.log(
+      req.method,
+      decodeURI(req.url),
+      res.statusCode,
+      res.statusMessage
+    )
   })
-}))
+  next()
+}
+
+app.use(createLog)
+
+app.use(
+  express.static(path.join(__dirname, '../../client_next/out'), { extensions: ['html'] })
+)
+app.use(
+  session({
+    resave: false,
+    saveUninitialized: false,
+    secret: process.env.SESSION_SECRET as string,
+    store: MongoStore.create({
+      mongoUrl: process.env.MONGODB_URI as string,
+      autoRemove: 'interval',
+      autoRemoveInterval: 3600
+    })
+  })
+)
 app.use(express.json())
 app.use(passport.initialize())
 app.use(passport.session())
@@ -121,7 +142,8 @@ app.get(
   })
 )
 
-app.get('/google/callback',
+app.get(
+  '/google/callback',
   passport.authenticate('google', {
     successRedirect: `${process.env.FE_URL ?? ''}/api/auth/successRedirect`,
     failureRedirect: '/api/auth/failure'
@@ -137,15 +159,22 @@ app.get('/api/auth/successRedirect', (req, res) => {
     }
 
     // register user
-    const emails: string[] = req.user.profile.emails?.filter((email) => email.verified).map((email) => email.value) ?? []
-    const user = await ScheduleUserModel.findOneAndUpdate<ScheduleUser>({ uid: req.user.profile.id }, {
-      name: req.user.profile.displayName,
-      emails
-    }, {
-      upsert: true,
-      setDefaultsOnInsert: true,
-      new: true
-    })
+    const emails: string[] =
+      req.user.profile.emails
+        ?.filter((email) => email.verified)
+        .map((email) => email.value) ?? []
+    const user = await ScheduleUserModel.findOneAndUpdate<ScheduleUser>(
+      { uid: req.user.profile.id },
+      {
+        name: req.user.profile.displayName,
+        emails
+      },
+      {
+        upsert: true,
+        setDefaultsOnInsert: true,
+        new: true
+      }
+    )
 
     // save access token to session
     req.session.accessToken = req.user.accessToken
@@ -156,23 +185,36 @@ app.get('/api/auth/successRedirect', (req, res) => {
   })(req, res).catch((err) => {
     console.log(err)
     res.status(500)
-    res.json(new ApiErrorResponse('Unknown server error while handling authentication.'))
+    res.json(
+      new ApiErrorResponse(
+        'Unknown server error while handling authentication.'
+      )
+    )
   })
 })
 
 app.get('/api/auth/failure', (req, res) => {
   res.status(403)
-  res.json(new ApiErrorResponse('Failed to log in. Navigate to /login and try again.'))
+  res.json(
+    new ApiErrorResponse('Failed to log in. Navigate to /login and try again.')
+  )
 })
 
 // ---------------------------------- USER INFORMATION ENDPOINTS ------------------------------
 
 app.get('/api/users/me', isLoggedIn, (req, res) => {
   (async (req, res) => {
-    const user = await ScheduleUserModel.findOne<ScheduleUser>({ uid: req.session.user?.uid }, { _id: 0, __v: 0 })
+    const user = await ScheduleUserModel.findOne<ScheduleUser>(
+      { uid: req.session.user?.uid },
+      { _id: 0, __v: 0 }
+    )
 
     if (user == null) {
-      console.log(`User with uid ${req.session.user?.uid ?? '<NO UID FOUND>'} found in database.`)
+      console.log(
+        `User with uid ${
+          req.session.user?.uid ?? '<NO UID FOUND>'
+        } found in database.`
+      )
       res.status(500)
       res.json(new ApiErrorResponse('Current user not found.'))
       return
@@ -194,11 +236,19 @@ app.post('/api/users/admin', isAdmin, (req, res) => {
       return
     }
     const isAdmin = req.query.isAdmin ?? true
-    const user = await ScheduleUserModel.findOneAndUpdate<ScheduleUser>({ uid: req.query.uid }, { isAdmin }, { new: true })
+    const user = await ScheduleUserModel.findOneAndUpdate<ScheduleUser>(
+      { uid: req.query.uid },
+      { isAdmin },
+      { new: true }
+    )
 
     if (user == null) {
       res.status(404)
-      res.json(new ApiErrorResponse('User with this uid not found. Please try a different uid.'))
+      res.json(
+        new ApiErrorResponse(
+          'User with this uid not found. Please try a different uid.'
+        )
+      )
       return
     }
 
@@ -226,25 +276,26 @@ app.get('/api/users', isAdmin, (req, res) => {
 app.get('/api/course-catalog/supported', (req, res) => {
   (async (req, res) => {
     res.json(new ApiSuccessResponse(await getSupportedCourseCatalog()))
-  })(req, res)
-    .catch((err) => {
-      console.log(err)
-      res.status(500)
-      res.json(new ApiErrorResponse('Unknown database error'))
-    })
+  })(req, res).catch((err) => {
+    console.log(err)
+    res.status(500)
+    res.json(new ApiErrorResponse('Unknown database error'))
+  })
 })
 
 app.get('/api/course-catalog', (req, res) => {
   (async (req, res) => {
     const query = req.query.query ?? ''
-    const courses: Course[] = await CourseModel.find({ name: { $regex: query, $options: 'i' } }, { _id: 0, __v: 0 })
+    const courses: Course[] = await CourseModel.find(
+      { name: { $regex: query, $options: 'i' } },
+      { _id: 0, __v: 0 }
+    )
     res.json(new ApiSuccessResponse(courses))
-  })(req, res)
-    .catch((err) => {
-      console.log(err)
-      res.status(500)
-      res.json(new ApiErrorResponse('Unknown database error'))
-    })
+  })(req, res).catch((err) => {
+    console.log(err)
+    res.status(500)
+    res.json(new ApiErrorResponse('Unknown database error'))
+  })
 })
 
 app.post('/api/course-catalog/add', isAdmin, (req, res) => {
@@ -259,18 +310,22 @@ app.post('/api/course-catalog/add', isAdmin, (req, res) => {
     )
     await CourseModel.create(newCourse)
     res.json(new ApiSuccessResponse(newCourse))
-  })(req, res)
-    .catch((err) => {
-      if (err instanceof Error.ValidationError) {
-        const missingFields: string[] = Object.getOwnPropertyNames(err.errors)
-        res.status(400)
-        res.json(new ApiErrorResponse(`The following fields are missing: ${missingFields.join(', ')}`, { missingFields }))
-        return
-      }
-      console.log(err)
-      res.status(500)
-      res.json(new ApiErrorResponse('Unknown database error'))
-    })
+  })(req, res).catch((err) => {
+    if (err instanceof Error.ValidationError) {
+      const missingFields: string[] = Object.getOwnPropertyNames(err.errors)
+      res.status(400)
+      res.json(
+        new ApiErrorResponse(
+          `The following fields are missing: ${missingFields.join(', ')}`,
+          { missingFields }
+        )
+      )
+      return
+    }
+    console.log(err)
+    res.status(500)
+    res.json(new ApiErrorResponse('Unknown database error'))
+  })
 })
 
 app.post('/api/course-catalog/support', isAdmin, (req, res) => {
@@ -282,46 +337,60 @@ app.post('/api/course-catalog/support', isAdmin, (req, res) => {
     }
 
     const newSupported = req.query.supported ?? true
-    const updatedDoc = await CourseModel.findOneAndUpdate<Course>({ uid: req.query.uid }, { supported: newSupported })
+    const updatedDoc = await CourseModel.findOneAndUpdate<Course>(
+      { uid: req.query.uid },
+      { supported: newSupported }
+    )
 
     if (updatedDoc == null) {
       res.status(404)
-      res.json(new ApiErrorResponse('No course exists with this uid. Please try another one.'))
+      res.json(
+        new ApiErrorResponse(
+          'No course exists with this uid. Please try another one.'
+        )
+      )
       return
     }
 
     res.json(new ApiSuccessResponse(null))
-  })(req, res)
-    .catch((err) => {
-      console.log(err)
-      res.status(500)
-      res.json(new ApiErrorResponse('Unknown database error'))
-    })
+  })(req, res).catch((err) => {
+    console.log(err)
+    res.status(500)
+    res.json(new ApiErrorResponse('Unknown database error'))
+  })
 })
 
 app.post('/api/course-catalog/update', isAdmin, (req, res) => {
   (async (req, res) => {
     if (req.body.uid == null) {
       res.status(400)
-      res.json(new ApiErrorResponse('Please supply a Course object with a uid.'))
+      res.json(
+        new ApiErrorResponse('Please supply a Course object with a uid.')
+      )
       return
     }
 
-    const updatedDoc = await CourseModel.findOneAndUpdate<Course>({ uid: req.body.uid }, { ...req.body })
+    const updatedDoc = await CourseModel.findOneAndUpdate<Course>(
+      { uid: req.body.uid },
+      { ...req.body }
+    )
 
     if (updatedDoc == null) {
       res.status(404)
-      res.json(new ApiErrorResponse('No course exists with this uid. Please try another one.'))
+      res.json(
+        new ApiErrorResponse(
+          'No course exists with this uid. Please try another one.'
+        )
+      )
       return
     }
 
     res.json(new ApiSuccessResponse(null))
-  })(req, res)
-    .catch((err) => {
-      console.log(err)
-      res.status(500)
-      res.json(new ApiErrorResponse('Unknown database error'))
-    })
+  })(req, res).catch((err) => {
+    console.log(err)
+    res.status(500)
+    res.json(new ApiErrorResponse('Unknown database error'))
+  })
 })
 
 app.delete('/api/course-catalog', isAdmin, (req, res) => {
@@ -332,21 +401,26 @@ app.delete('/api/course-catalog', isAdmin, (req, res) => {
       return
     }
 
-    const updatedDoc = await CourseModel.findOneAndDelete<Course>({ uid: req.query.uid })
+    const updatedDoc = await CourseModel.findOneAndDelete<Course>({
+      uid: req.query.uid
+    })
 
     if (updatedDoc == null) {
       res.status(404)
-      res.json(new ApiErrorResponse('No course exists with this uid. Please try another one.'))
+      res.json(
+        new ApiErrorResponse(
+          'No course exists with this uid. Please try another one.'
+        )
+      )
       return
     }
 
     res.json(new ApiSuccessResponse(null))
-  })(req, res)
-    .catch((err) => {
-      console.log(err)
-      res.status(500)
-      res.json(new ApiErrorResponse('Unknown database error'))
-    })
+  })(req, res).catch((err) => {
+    console.log(err)
+    res.status(500)
+    res.json(new ApiErrorResponse('Unknown database error'))
+  })
 })
 
 // ----------------------------------- SCHEDULING ENDPOINTS -----------------------------------
@@ -354,9 +428,20 @@ app.delete('/api/course-catalog', isAdmin, (req, res) => {
 async function getSupportedCourseCatalog (): Promise<CourseCatalog> {
   // returns the source of truth list of all courses
   try {
-    const supportedCourses: Course[] = await CourseModel.find<Course>({ supported: true }, { _id: 0, __v: 0 })
+    const supportedCourses: Course[] = await CourseModel.find<Course>(
+      { supported: true },
+      { _id: 0, __v: 0 }
+    )
     return supportedCourses.map((course) => {
-      return new Course(course.name, course.school, course.courseId, course.department, course.supported, course.abbreviation, course.uid)
+      return new Course(
+        course.name,
+        course.school,
+        course.courseId,
+        course.department,
+        course.supported,
+        course.abbreviation,
+        course.uid
+      )
     })
   } catch (e) {
     console.log(e)
@@ -368,8 +453,8 @@ app.get('/api/calendars', isLoggedIn, (req, res) => {
   (async (req, res) => {
     const accessToken = req.session.accessToken ?? ''
     const url =
-            'https://www.googleapis.com/calendar/v3/users/me/calendarList?access_token=' +
-            accessToken
+      'https://www.googleapis.com/calendar/v3/users/me/calendarList?access_token=' +
+      accessToken
 
     const rawData = await fetch(url, {
       method: 'GET'
@@ -394,7 +479,9 @@ app.get('/api/calendars', isLoggedIn, (req, res) => {
 
     if (responseStatus >= 400) {
       res.status(500)
-      res.json(new ApiErrorResponse('Unknown error while retrieving calendar events.'))
+      res.json(
+        new ApiErrorResponse('Unknown error while retrieving calendar events.')
+      )
       return
     }
 
@@ -410,12 +497,11 @@ app.get('/api/calendars', isLoggedIn, (req, res) => {
     })
 
     res.json(calendarInfos)
-  })(req, res)
-    .catch((err) => {
-      console.log(err)
-      res.status(500)
-      res.json(new ApiErrorResponse('Unknown server error.'))
-    })
+  })(req, res).catch((err) => {
+    console.log(err)
+    res.status(500)
+    res.json(new ApiErrorResponse('Unknown server error.'))
+  })
 })
 
 app.post('/api/schedule', isAdmin, (req, res) => {
@@ -446,10 +532,10 @@ app.post('/api/schedule', isAdmin, (req, res) => {
       const { name, id }: { name: string, id: string } = calId
 
       const url =
-                `https://www.googleapis.com/calendar/v3/calendars/${id}/events?` +
-                `access_token=${accessToken}&` +
-                `timeMin=${startTime.toISOString()}&` +
-                `timeMax=${endTime.toISOString()}`
+        `https://www.googleapis.com/calendar/v3/calendars/${id}/events?` +
+        `access_token=${accessToken}&` +
+        `timeMin=${startTime.toISOString()}&` +
+        `timeMax=${endTime.toISOString()}`
 
       const data = await fetch(url, {
         method: 'GET'
@@ -461,27 +547,43 @@ app.post('/api/schedule', isAdmin, (req, res) => {
       if (responseStatus === 401) {
         // invalid credentials
         res.status(401)
-        res.json(new ApiErrorResponse('Invalid Credentials. Navigate to /login and login through Google again.'))
+        res.json(
+          new ApiErrorResponse(
+            'Invalid Credentials. Navigate to /login and login through Google again.'
+          )
+        )
         return
       }
 
       if (responseStatus === 404) {
         // invalid id error
         res.status(404)
-        res.json(new ApiErrorResponse(`${name} calendar not found. Double check that your calendars are not deleted.`))
+        res.json(
+          new ApiErrorResponse(
+            `${name} calendar not found. Double check that your calendars are not deleted.`
+          )
+        )
         return
       }
 
       if (responseStatus === 500) {
         // google server error
         res.status(500)
-        res.json(new ApiErrorResponse('Google backend error. Please try again in a few minutes.'))
+        res.json(
+          new ApiErrorResponse(
+            'Google backend error. Please try again in a few minutes.'
+          )
+        )
         return
       }
 
       if (responseStatus >= 400) {
         res.status(500)
-        res.json(new ApiErrorResponse('Unknown error while retrieving calendar events.'))
+        res.json(
+          new ApiErrorResponse(
+            'Unknown error while retrieving calendar events.'
+          )
+        )
         return
       }
 
@@ -489,7 +591,9 @@ app.post('/api/schedule', isAdmin, (req, res) => {
       const eventList: Event[] = eventJson.items ?? []
 
       eventList.forEach((event) => {
-        if (event.status != null && event.status !== 'cancelled') { allShifts.push(new Shift(event, name)) }
+        if (event.status != null && event.status !== 'cancelled') {
+          allShifts.push(new Shift(event, name))
+        }
       })
     }
 
@@ -499,10 +603,7 @@ app.post('/api/schedule', isAdmin, (req, res) => {
       locations.forEach((location) => {
         [0, 1, 2, 3, 4, 5, 6].forEach((weekDay) => {
           const courseSchedule = schedule.find((courseSchedule) => {
-            return (
-              courseSchedule.course.abbreviation ===
-                            course.abbreviation
-            )
+            return courseSchedule.course.abbreviation === course.abbreviation
           })
           if (courseSchedule == null) {
             return
@@ -521,23 +622,25 @@ app.post('/api/schedule', isAdmin, (req, res) => {
             }
           )
           if (dailySchedule != null) {
-            dailySchedule.intervals = getClassSchedule(
-              dailySchedule.intervals
-            )
+            dailySchedule.intervals = getClassSchedule(dailySchedule.intervals)
           }
         })
       })
     })
 
     res.json(schedule)
-  })(req, res)
-    .catch((err) => {
-      console.log(err)
-      res.status(500)
-      res.json(new ApiErrorResponse('Unknown server error. Please contact ULC developers.'))
-    })
+  })(req, res).catch((err) => {
+    console.log(err)
+    res.status(500)
+    res.json(
+      new ApiErrorResponse(
+        'Unknown server error. Please contact ULC developers.'
+      )
+    )
+  })
 })
 
 app.listen(port, () => {
+  console.log(path.join(__dirname, '../../client_next/out'))
   console.log(`⚡️[server]: Server is running at https://localhost:${port}`)
 })

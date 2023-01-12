@@ -6,7 +6,7 @@
   "author": "Laksh Chakraborty <lakshc2010@gmail.com>",
   "license": "MIT",
   "scripts": {
-    "build": "npx tsc",
+    "build": "npx tsc && cd client_next && yarn build",
     "start": "node dist/src/index.js",
     "dev": "concurrently \"npx tsc --watch\" \"nodemon -q dist/src/index.js\" \"cd client_next && yarn dev\""
   },
