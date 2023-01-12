@@ -40,6 +40,8 @@ const Scheduler: NextPage = () => {
       await router.push('/login')
     }
 
+    // TODO: HANDLE THE ERROR CASE
+
     const data = await res.json() as CalendarInfo[]
     setCalendars(data)
   }
