@@ -2,6 +2,9 @@ import mongoose, { Schema } from 'mongoose'
 import { Course, User } from '../@types/scheduler'
 import { v4 } from 'uuid'
 
+// uncomment to run commands to mass migrate to mongo collection from scripts
+// require('dotenv').config()
+
 const CourseSchema = new Schema<Course>({
   name: {
     type: String,

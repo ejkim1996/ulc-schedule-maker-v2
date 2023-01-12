@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-unused-vars */
 import * as path from 'path'
 import * as fs from 'fs'
 import csvParser, { Options } from 'csv-parser'
@@ -58,4 +59,40 @@ const addSupportedCourse = (sci: supportedCourseInfo): void => {
   })(sci)
 }
 
-onSupportedCourses(addSupportedCourse)
+const copyOverCourses = (): void => {
+  void (async () => {
+    const jsonPath = path.join(__dirname, '../../courses.json')
+    fs.readFile(jsonPath, (err, data) => {
+      void (async () => {
+        if (err != null) {
+          return
+        }
+
+        const courses = JSON.parse(data.toString())
+
+        for (const course of courses) {
+          await CourseModel.findOneAndUpdate({
+            name: course.name,
+            department: course.department,
+            courseId: course.courseId,
+            school: course.school
+          }, {
+            supported: course.supported,
+            abbreviation: course.abbreviation
+          }, {
+            upsert: true,
+            new: true,
+            setDefaultsOnInsert: true
+          })
+        }
+      })()
+    })
+  })()
+}
+
+// moves courses from a courses.json export
+// used to migrate data from dev to prod
+// copyOverCourses()
+
+// moves support information from spreadsheet into database
+// onSupportedCourses(addSupportedCourse)
