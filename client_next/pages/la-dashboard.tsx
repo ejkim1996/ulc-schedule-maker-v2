@@ -3,10 +3,17 @@ import { useEffect, useState } from 'react'
 import { Course } from '../../@types/scheduler'
 import CopyButton from '../components/copy-button'
 import LaRow from '../components/la-table-row'
+import { FaPlus, FaCheck } from 'react-icons/fa'
 
 const LaDashboard: NextPage = () => {
   const [searchText, setSearchText] = useState('')
   const [data, setData] = useState<Course[]>([])
+
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+
+  const [courseName, setCourseName] = useState('')
+  const [addCourseShowing, setAddCourseShowing] = useState(false)
 
   const courseFetcher = async (url: string): Promise<Course[]> => {
     return await fetch(url).then(
@@ -28,16 +35,6 @@ const LaDashboard: NextPage = () => {
   useEffect(() => {
     void fetchCourses()
   }, [])
-
-  // const { data, mutate } = useSWR<Course[]>(
-  //   '/api/course-catalog/supported',
-  //   courseFetcher,
-  //   {
-  //     revalidateOnFocus: false,
-  //     revalidateIfStale: false,
-  //     revalidateOnReconnect: false
-  //   }
-  // )
 
   const updateFn = (c: Course): Course[] => {
     const indexToUpdate = data.findIndex((course) => {
@@ -72,13 +69,97 @@ const LaDashboard: NextPage = () => {
       )
     })
 
-  const laText = data
+  const laName = `${firstName} ${lastName.charAt(0)}.`
+
+  const laCourses = data
     .filter((c) => c.supported)
     .map((c) => c.abbreviation ?? c.name)
     .join(', ')
 
+  const laText =
+    firstName !== '' && lastName !== '' && laCourses !== ''
+      ? `${laName} - Available - ${laCourses}`
+      : ''
+
+  const rightPane = (
+    <div className="flex flex-col gap-4 mt-10">
+      <div className="flex flex-col gap-4">
+        <div className="flex flex-col md:flex-row gap-2">
+          <input
+            type="text"
+            placeholder="First Name"
+            className="input min-w-0 flex-auto input-bordered"
+            onChange={(e) => {
+              setFirstName(() => e.target.value)
+            }}
+          />
+          <input
+            type="text"
+            placeholder="Last Name"
+            className="input min-w-0 flex-auto input-bordered"
+            onChange={(e) => {
+              setLastName(() => e.target.value)
+            }}
+          />
+        </div>
+        {addCourseShowing && (
+          <input
+            type="text"
+            placeholder="Course Name"
+            className="input input-bordered"
+            value={courseName}
+            onChange={(e) => {
+              setCourseName(() => e.target.value)
+            }}
+          />
+        )}
+        <button
+          className="btn bg-purple-200 hover:bg-purple-300 text-purple-900 border-0"
+          onClick={() => {
+            if (!addCourseShowing) {
+              setAddCourseShowing(true)
+            } else {
+              const newCourse: Course = {
+                name: courseName,
+                school: '',
+                courseId: '',
+                department: '',
+                supported: true,
+                abbreviation: undefined,
+                uid: crypto.randomUUID(),
+                matchScore: () => {
+                  return 1
+                }
+              }
+              // const newCourse = new Course(courseName, '', '', '', true, '')
+              setData(() => [...data, newCourse])
+              setCourseName(() => '')
+            }
+          }}
+        >
+          <span className="pr-2">
+            {addCourseShowing ? <FaCheck /> : <FaPlus />}
+          </span>
+          {addCourseShowing ? 'Save' : 'Add Course'}
+        </button>
+      </div>
+      <div className="col-span-1 rounded-lg p-2 bg-gray-100 relative flex-grow">
+        <h2 className="text-3xl mt-2 mb-2 font-bold text-slate-800">Blurb</h2>
+        <p className="text-slate-500">
+          {laText === '' ? 'Make a selection to get blurb...' : laText}
+        </p>
+        <div className="absolute top-2 right-2">
+          <CopyButton copyText={laText}></CopyButton>
+        </div>
+      </div>
+    </div>
+  )
+
   return (
-    <div className="max-w-full rounded-2xl bg-white p-2 m-4 flex flex-col">
+    <div
+      className="max-w-full rounded-2xl bg-white p-2 m-4 flex flex-col"
+      data-theme="emerald"
+    >
       <h1 className="text-4xl text-left pt-2 pl-2 pb-4 text-gray-800 font-bold">
         Blurb Maker
       </h1>
@@ -107,15 +188,7 @@ const LaDashboard: NextPage = () => {
             </table>
           </div>
         </div>
-        <div className="col-span-1 mt-10 p-2 rounded-lg bg-gray-100 relative">
-          <h2 className="text-3xl mt-2 mb-2 font-bold text-slate-800">Blurb</h2>
-          <p className="text-slate-500">
-            {laText === '' ? 'Make a selection to get blurb...' : laText}
-          </p>
-          <div className='absolute top-2 right-2'>
-            <CopyButton copyText={laText}></CopyButton>
-          </div>
-        </div>
+        {rightPane}
       </div>
     </div>
   )
