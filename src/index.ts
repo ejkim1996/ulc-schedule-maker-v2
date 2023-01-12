@@ -181,7 +181,7 @@ app.get('/api/auth/successRedirect', (req, res) => {
     req.session.user = user
     req.session.save()
 
-    res.redirect('/scheduler')
+    res.redirect('/landing-page')
   })(req, res).catch((err) => {
     console.log(err)
     res.status(500)
