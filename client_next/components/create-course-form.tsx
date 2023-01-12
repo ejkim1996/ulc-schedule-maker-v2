@@ -170,7 +170,7 @@ const CreateCourseForm: React.FC<{
           await handleClick()
         }}
       >
-        {editMode ? 'Edit' : 'Create'}
+        {editMode ? 'Save' : 'Create'}
       </button>
       <div className="text-red-500">{error}</div>
     </div>

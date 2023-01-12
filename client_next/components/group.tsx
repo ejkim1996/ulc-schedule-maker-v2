@@ -31,8 +31,19 @@ const Group: React.FC<Props> = ({ course: schedule }) => {
       const scheduleBlock = ls.dailySchedules.map((ds, index) => {
         const intervalString = ds.intervals.reduce(
           (prev: string, curr: Interval) => {
-            const startString = new Date(curr.start).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' })
-            const endString = new Date(curr.end).toLocaleTimeString('en-US', { timeZone: 'America/New_York', hour: '2-digit', minute: '2-digit' })
+            const startString = new Date(curr.start).toLocaleTimeString(
+              'en-US',
+              {
+                timeZone: 'America/New_York',
+                hour: '2-digit',
+                minute: '2-digit'
+              }
+            )
+            const endString = new Date(curr.end).toLocaleTimeString('en-US', {
+              timeZone: 'America/New_York',
+              hour: '2-digit',
+              minute: '2-digit'
+            })
 
             return prev + `${startString} - ${endString}; `
           },
@@ -60,7 +71,7 @@ const Group: React.FC<Props> = ({ course: schedule }) => {
         )
 
         return intervalString !== '' && dayMap.get(curr.weekDay) !== undefined
-          ? prev + `${dayMap.get(curr.weekDay)}: ${intervalString} \n`
+          ? prev + `${dayMap.get(curr.weekDay) ?? ''}: ${intervalString} \n`
           : prev + ''
       }, '')
 
@@ -126,7 +137,7 @@ const Group: React.FC<Props> = ({ course: schedule }) => {
             </Disclosure.Button>
             <Disclosure.Panel className="px-4 pt-2 pb-2 text-sm text-gray-500 grid grid-cols-1 md:grid-cols-2 relative">
               {locationJsx}
-              <div className='absolute top-2 right-0'>
+              <div className="absolute top-2 right-0">
                 <CopyButton copyText={locationS}></CopyButton>
               </div>
             </Disclosure.Panel>
