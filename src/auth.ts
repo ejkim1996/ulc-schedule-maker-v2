@@ -15,7 +15,7 @@ passport.use(
     {
       clientID: process.env.GOOGLE_CLIENT_ID as string,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
-      callbackURL: process.env.GOOGLE_REDIRECT_URL as string, // TODO: this will change in prod
+      callbackURL: process.env.GOOGLE_REDIRECT_URL as string,
       scope: [
         'profile',
         'https://www.googleapis.com/auth/calendar.readonly'
