@@ -26,7 +26,7 @@ async function getSchoolAndSubjects (): Promise<SchoolSubject[]> {
 async function forEachCourse (callback: (course: Course) => void | Promise<void>): Promise<void> {
   const schoolSubjectObjects: SchoolSubject[] = await getSchoolAndSubjects()
   for (const schoolSubject of schoolSubjectObjects) {
-    const url = `https://schedge.a1liu.com/2022/fa/${schoolSubject.school}/${schoolSubject.subject}`
+    const url = `https://schedge.a1liu.com/2022/sp/${schoolSubject.school}/${schoolSubject.subject}`
     const apiResponse = await fetch(url)
     const response = await apiResponse.json()
     for (const albertCourse of response) {
@@ -46,6 +46,7 @@ async function forEachCourse (callback: (course: Course) => void | Promise<void>
       }
     }
   }
+  console.log('Done processing courses')
 }
 
 async function addCourseToMongo (course: Course): Promise<void> {
