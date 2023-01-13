@@ -115,6 +115,7 @@ export class Shift extends Interval {
       this.coursesGiven = []
       return
     }
+
     this.coursesGiven = description
       .split('-')[2]
       ?.split(',')
@@ -122,12 +123,20 @@ export class Shift extends Interval {
       .filter((c) => c !== '')
 
     if (this.coursesGiven == null) {
+      this.coursesGiven = description
+        ?.split(',')
+        .map((c) => c.trim())
+        .filter((c) => c !== '')
+    }
+
+    if (this.coursesGiven == null) {
       this.coursesGiven = []
     }
 
     // TODO: current edge cases that need to be covered
     //       no description (we could check the event name)
-    //       M dashes, or better yet a mix of both
+    //       M dashes instead of N dashes, or better yet a mix of both,
+    //       no dashes at all, semicolons instead of commas
   }
 }
 
