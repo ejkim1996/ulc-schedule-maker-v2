@@ -62,8 +62,6 @@ const Scheduler: NextPage = () => {
       return
     }
 
-    // TODO: HANDLE THE ERROR CASE
-
     const data = (await res.json()) as CalendarInfo[]
     setCalendars(() => {
       return {
@@ -346,8 +344,12 @@ const Scheduler: NextPage = () => {
             <div>Loading</div>
           </div>
         )
+      default:
+        <></>
     }
   }
+
+  return <></>
 }
 
 export default Scheduler
