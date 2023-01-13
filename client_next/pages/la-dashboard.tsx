@@ -110,7 +110,19 @@ const LaDashboard: NextPage = () => {
 
   const laCourses = data
     .filter((c) => c.supported)
-    .map((c) => c.abbreviation ?? c.name)
+    .sort((a, b) => {
+      if (a.department === b.department) {
+        return parseInt(a.courseId) - parseInt(b.courseId)
+      }
+
+      return a.department.localeCompare(b.department)
+    })
+    .map((c) => {
+      if (c.abbreviation === '' || c.abbreviation == null) {
+        return c.name
+      }
+      return c.abbreviation
+    })
     .join(', ')
 
   const laText =
