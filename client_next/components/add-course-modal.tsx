@@ -13,7 +13,7 @@ const AddCourseModal: React.FC = () => {
   const [searchText, setSearchText] = useState('')
   const [courses, setCourses] = useState<Course[]>([])
 
-  const search = useDebounce(searchText, 500)
+  const search = useDebounce(searchText, 200)
   const { mutate } = useSWRConfig()
 
   const courseFetcher = async (query: string): Promise<Course[]> => {

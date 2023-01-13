@@ -13,6 +13,7 @@ const Landing: NextPage = () => {
 
     if (res.status >= 400) {
       console.log('Did not get user')
+      // TODO: Handle error type
       return
     }
 
