@@ -41,8 +41,8 @@ const TableRow: React.FC<{
               type="checkbox"
               className="checkbox"
               checked={course.supported}
-              onChange={async (e) => {
-                await handleCheck()
+              onChange={(e) => {
+                void handleCheck()
               }}
             />
           </label>

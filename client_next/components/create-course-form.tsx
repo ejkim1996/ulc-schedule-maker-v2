@@ -166,8 +166,8 @@ const CreateCourseForm: React.FC<{
       </div>
       <button
         className="btn w-full bg-purple-200 hover:bg-purple-300 text-purple-900 border-0 self-center"
-        onClick={async () => {
-          await handleClick()
+        onClick={() => {
+          void handleClick()
         }}
       >
         {editMode ? 'Save' : 'Create'}

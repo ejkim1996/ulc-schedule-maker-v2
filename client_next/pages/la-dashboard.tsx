@@ -60,28 +60,30 @@ const LaDashboard: NextPage = () => {
       let idFound = false
 
       if (course.name != null) {
-        nameFound =
-          course.name.toLowerCase().indexOf(searchText.toLowerCase()) > -1
+        nameFound = course.name
+          .toLowerCase()
+          .includes(searchText.toLowerCase())
         console.log(nameFound)
       }
 
       if (course.abbreviation != null) {
-        abbFound =
-          course.abbreviation.toLowerCase().indexOf(searchText.toLowerCase()) >
-          -1
+        abbFound = course.abbreviation
+          .toLowerCase()
+          .includes(searchText.toLowerCase())
         console.log(abbFound)
       }
 
       if (course.department != null) {
-        deptFound =
-          course.department.toLowerCase().indexOf(searchText.toLowerCase()) >
-          -1
+        deptFound = course.department
+          .toLowerCase()
+          .includes(searchText.toLowerCase())
         console.log(deptFound)
       }
 
       if (course.courseId != null) {
-        idFound =
-          course.courseId.toLowerCase().indexOf(searchText.toLowerCase()) > -1
+        idFound = course.courseId
+          .toLowerCase()
+          .includes(searchText.toLowerCase())
         console.log(idFound)
       }
 
