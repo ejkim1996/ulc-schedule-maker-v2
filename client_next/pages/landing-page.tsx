@@ -5,13 +5,11 @@ import { ApiErrorResponse, User } from '../../@types/scheduler'
 import NetworkState from '../@types/network-state'
 
 const Landing: NextPage = () => {
-  const [networkState, setNetworkState] = useState<NetworkState<User>>()
+  const [networkState, setNetworkState] = useState<NetworkState<User>>({
+    state: 'loading'
+  })
 
   async function fetchUser (): Promise<void> {
-    setNetworkState(() => {
-      return { state: 'loading' }
-    })
-
     const res = await fetch('/api/users/me', {
       method: 'GET'
     })
