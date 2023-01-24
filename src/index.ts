@@ -98,9 +98,6 @@ const createLog = (req: Request, res: Response, next: NextFunction): void => {
 app.use(createLog)
 
 app.use(
-  express.static(path.join(__dirname, '../../client_next/out'), { extensions: ['html'] })
-)
-app.use(
   session({
     resave: false,
     saveUninitialized: false,
@@ -646,6 +643,33 @@ app.post('/api/schedule', isAdmin, (req, res) => {
       )
     )
   })
+})
+
+// ----------------------------------- REDIRECTION ENDPOINTS -----------------------------------
+
+app.get('/', (req, res) => {
+  if (req.session.user == null) {
+    res.redirect('/login')
+  } else {
+    res.redirect('/landing-page')
+  }
+})
+
+// --------------------------------------- STATIC SERVER ---------------------------------------
+app.use(
+  express.static(path.join(__dirname, '../../client_next/out'), {
+    extensions: ['html']
+  })
+)
+
+// --------------------------------------- CATCHALL ---------------------------------------
+
+app.get('*', (req, res) => {
+  if (req.session.user == null) {
+    res.redirect('/login')
+  } else {
+    res.redirect('/landing-page')
+  }
 })
 
 app.listen(port, () => {
