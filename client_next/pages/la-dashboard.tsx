@@ -12,6 +12,8 @@ const LaDashboard: NextPage = () => {
   const [firstName, setFirstName] = useState('')
   const [lastName, setLastName] = useState('')
 
+  const [isPreferred, setIsPreferred] = useState(false)
+
   const [courseName, setCourseName] = useState('')
   const [addCourseShowing, setAddCourseShowing] = useState(false)
 
@@ -106,8 +108,6 @@ const LaDashboard: NextPage = () => {
       )
     })
 
-  const laName = `${firstName} ${lastName.charAt(0)}.`
-
   const laCourses = data
     .filter((c) => c.supported)
     .sort((a, b) => {
@@ -125,10 +125,13 @@ const LaDashboard: NextPage = () => {
     })
     .join(', ')
 
-  const laText =
-    firstName !== '' && lastName !== '' && laCourses !== ''
-      ? `${laName} - Available - ${laCourses}`
-      : ''
+  const nameText =
+    (firstName !== '' ? `${firstName} ` : 'First') +
+    (lastName !== '' ? `${lastName.charAt(0)}.` : ' L.')
+
+  const availableText = isPreferred ? 'Preferred' : 'Available'
+
+  const laText = `${nameText} - ${availableText} - ${laCourses}`
 
   const rightPane = (
     <div className="flex flex-col gap-4 mt-10">
@@ -233,11 +236,24 @@ const LaDashboard: NextPage = () => {
       </div>
       <div className="col-span-1 rounded-lg p-2 bg-gray-100 relative flex-grow">
         <h2 className="text-3xl mt-2 mb-2 font-bold text-slate-800">Blurb</h2>
-        <p className="text-slate-500">
-          {laText === '' ? 'Make a selection to get blurb...' : laText}
-        </p>
+        <p className="text-slate-500">{laText}</p>
         <div className="absolute top-2 right-2">
-          <CopyButton copyText={laText}></CopyButton>
+          <div className="flex flex-row items-center gap-4">
+            <div className="form-control">
+              <label className="label cursor-pointer">
+                <span className="label-text mr-4 text-md">Preferred</span>
+                <input
+                  type="checkbox"
+                  checked={isPreferred}
+                  onClick={() => {
+                    setIsPreferred(() => !isPreferred)
+                  }}
+                  className="checkbox"
+                />
+              </label>
+            </div>
+            <CopyButton copyText={laText}></CopyButton>
+          </div>
         </div>
       </div>
     </div>
