@@ -116,7 +116,7 @@ app.use(cors())
 
 // ------------------------------- AUTHORIZATION AND AUTHENTICATION ENDPOINTS ---------------------------
 
-app.post('/logout', (req, res) => {
+app.post('/api/auth/logout', (req, res) => {
   req.session.destroy((err) => {
     if (err as boolean) {
       console.log(err)

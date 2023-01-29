@@ -1,10 +1,12 @@
 import Link from 'next/link'
+import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import { ApiErrorResponse, User } from '../../@types/scheduler'
 import NetworkState from '../@types/network-state'
 
 const NavBar: React.FC<{}> = () => {
   const [user, setUser] = useState<NetworkState<User>>({ state: 'loading' })
+  const router = useRouter()
 
   async function fetchUser (): Promise<void> {
     setUser(() => {
@@ -37,6 +39,19 @@ const NavBar: React.FC<{}> = () => {
     })
   }
 
+  async function logout (): Promise<void> {
+    const res = await fetch('/api/auth/logout', {
+      method: 'POST'
+    })
+
+    if (res.status >= 400) {
+      return
+    }
+
+    await fetchUser()
+    await router.replace('/login')
+  }
+
   useEffect(() => {
     void fetchUser()
   }, [])
@@ -50,6 +65,7 @@ const NavBar: React.FC<{}> = () => {
             <Link href="/scheduler"><a className="btn btn-ghost mx-1">Scheduler</a></Link>
             <Link href="/course-dashboard"><a className="btn btn-ghost mx-1">Course Dashboard</a></Link>
             <Link href="/la-dashboard"><a className="btn btn-ghost mx-1">LA Dashboard</a></Link>
+            <button className="btn" onClick={() => { void logout() }}>Logout</button>
           </>
         )
       } else {
