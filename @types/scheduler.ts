@@ -59,6 +59,28 @@ export type CourseCatalog = Course[]
 
 export type DayNumber = 0 | 1 | 2 | 3 | 4 | 5 | 6
 
+export const dayNames = [
+  'Sunday',
+  'Monday',
+  'Tuesday',
+  'Wednesday',
+  'Thursday',
+  'Friday',
+  'Saturday'
+] as const
+
+export type DayName = typeof dayNames[number]
+
+export const dayNumbers: Record<DayName, DayNumber> = {
+  Sunday: 0,
+  Monday: 1,
+  Tuesday: 2,
+  Wednesday: 3,
+  Thursday: 4,
+  Friday: 5,
+  Saturday: 6
+}
+
 interface IntervalInterface {
   start: Date
   end: Date
@@ -72,12 +94,18 @@ export class Interval implements IntervalInterface {
   }
 
   get weekDay (): DayNumber {
-    const startWeekDay: number = this.start.getDay()
+    const startDayName = this.start.toLocaleString('en-US', {
+      timeZone: 'America/New_York',
+      weekday: 'long'
+    }) as DayName
+
+    const startWeekDay = dayNumbers[startDayName]
+
     // const endWeekDay: number = this.end.getDay()
     // if (startWeekDay !== endWeekDay) {
     //   throw new Error('Event takes place over more than one day.')
     // }
-    return startWeekDay as DayNumber
+    return startWeekDay
   }
 }
 
