@@ -184,7 +184,7 @@ const LaDashboard: NextPage = () => {
                 },
                 fullName (): string {
                   return `${this.department}-${this.school} ${this.courseId}: ${
-                    this.abbreviation !== undefined
+                    this.abbreviation !== undefined && this.abbreviation !== ''
                       ? this.abbreviation
                       : this.name
                   }`

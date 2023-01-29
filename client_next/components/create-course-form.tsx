@@ -41,7 +41,9 @@ const CreateCourseForm: React.FC<{
       },
       fullName (): string {
         return `${this.department}-${this.school} ${this.courseId}: ${
-          this.abbreviation !== undefined ? this.abbreviation : this.name
+          this.abbreviation !== undefined && this.abbreviation !== ''
+            ? this.abbreviation
+            : this.name
         }`
       }
     }

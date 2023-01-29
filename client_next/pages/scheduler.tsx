@@ -197,7 +197,8 @@ const Scheduler: NextPage = () => {
             return `${schedule.course.department}-${schedule.course.school} ${
                 schedule.course.courseId
               }: ${
-                schedule.course.abbreviation !== undefined
+                schedule.course.abbreviation !== undefined &&
+                schedule.course.abbreviation !== ''
                   ? schedule.course.abbreviation
                   : schedule.course.name
               }`
