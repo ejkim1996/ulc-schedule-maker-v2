@@ -138,7 +138,7 @@ export class Shift extends Interval {
     // sets this.coursesGiven to be the list of names we were given
     // if we want, we can do some input validation in here
     // this is what we currently have implemented
-    const description = event.description
+    const description = event.summary
     if (description == null) {
       this.coursesGiven = []
       return
