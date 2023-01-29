@@ -608,7 +608,10 @@ app.post('/api/schedule', isAdmin, (req, res) => {
       locations.forEach((location) => {
         [0, 1, 2, 3, 4, 5, 6].forEach((weekDay) => {
           const courseSchedule = schedule.find((courseSchedule) => {
-            return courseSchedule.course.abbreviation === course.abbreviation
+            if (course.abbreviation === undefined || course.abbreviation === '') {
+              return courseSchedule.course.matchScore(course.name) > 0.5
+            }
+            return courseSchedule.course.matchScore(course.abbreviation) > 0.5
           })
           if (courseSchedule == null) {
             return

@@ -49,6 +49,9 @@ export class Course implements CourseInterface {
   // TODO: have a fuzzier way to match a course
   matchScore (courseGiven: string): number {
     if (this.supported) {
+      if ((this.abbreviation == null || this.abbreviation === '') && courseGiven === '') {
+        return 0
+      }
       return courseGiven === this.abbreviation || courseGiven === this.name ? 1 : 0
     }
     return 0
