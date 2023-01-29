@@ -48,17 +48,24 @@ export class Course implements CourseInterface {
 
   fullName (): string {
     return `${this.department}-${this.school} ${this.courseId}: ${
-      this.abbreviation !== undefined ? this.abbreviation : this.name
+      this.abbreviation !== undefined && this.abbreviation !== ''
+        ? this.abbreviation
+        : this.name
     }`
   }
 
   // TODO: have a fuzzier way to match a course
   matchScore (courseGiven: string): number {
     if (this.supported) {
-      if ((this.abbreviation == null || this.abbreviation === '') && courseGiven === '') {
+      if (
+        (this.abbreviation == null || this.abbreviation === '') &&
+        courseGiven === ''
+      ) {
         return 0
       }
-      return courseGiven === this.abbreviation || courseGiven === this.name ? 1 : 0
+      return courseGiven === this.abbreviation || courseGiven === this.name
+        ? 1
+        : 0
     }
     return 0
   }
