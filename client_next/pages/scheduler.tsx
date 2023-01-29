@@ -192,10 +192,23 @@ const Scheduler: NextPage = () => {
   const schedulesJs =
     schedules?.state === 'success'
       ? schedules.data
+        .map((schedule) => {
+          schedule.course.fullName = (): string => {
+            return `${schedule.course.department}-${schedule.course.school} ${
+                schedule.course.courseId
+              }: ${
+                schedule.course.abbreviation !== undefined
+                  ? schedule.course.abbreviation
+                  : schedule.course.name
+              }`
+          }
+          return schedule
+        })
         .filter((s) => {
           if (searchText.length !== 0) {
             return (
-              (s.course.abbreviation
+              (s.course
+                .fullName()
                 ?.toLowerCase()
                 .indexOf(searchText.toLowerCase()) ?? -1) > -1
             )
@@ -213,7 +226,7 @@ const Scheduler: NextPage = () => {
           return s1.course.department.localeCompare(s2.course.department)
         })
         .map((s) => {
-          return <Group course={s} key={s.course.abbreviation}></Group>
+          return <Group course={s} key={s.course.fullName()}></Group>
         })
       : []
 

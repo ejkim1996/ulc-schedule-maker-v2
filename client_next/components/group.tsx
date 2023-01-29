@@ -25,16 +25,16 @@ const Group: React.FC<Props> = ({ course: schedule }) => {
     [6, 'Saturday']
   ])
 
-  const cls = schedule.course
-
-  const classAbb =
-    cls.abbreviation === undefined || cls.abbreviation.trim().length === 0
-      ? schedule.course.name
-      : schedule.course.abbreviation
-
-  const courseName = `${cls.department}-${cls.school} ${cls.courseId}: ${
-    classAbb as string
-  }`
+  schedule.course.fullName = (): string => {
+    return `${schedule.course.department}-${schedule.course.school} ${
+      schedule.course.courseId
+    }: ${
+      schedule.course.abbreviation !== undefined
+        ? schedule.course.abbreviation
+        : schedule.course.name
+    }`
+  }
+  const courseName = schedule.course.fullName()
 
   const locationStrings: LocationString[] = schedule.locationSchedules.map(
     (ls) => {
