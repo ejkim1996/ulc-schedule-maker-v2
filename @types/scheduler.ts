@@ -49,7 +49,7 @@ export class Course implements CourseInterface {
   // TODO: have a fuzzier way to match a course
   matchScore (courseGiven: string): number {
     if (this.supported) {
-      return courseGiven === this.abbreviation ? 1 : 0
+      return courseGiven === this.abbreviation || courseGiven === this.name ? 1 : 0
     }
     return 0
   }

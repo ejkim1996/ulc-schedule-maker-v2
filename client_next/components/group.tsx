@@ -24,7 +24,11 @@ const Group: React.FC<Props> = ({ course: schedule }) => {
     [6, 'Saturday']
   ])
 
-  const courseName = schedule.course.abbreviation
+  const courseName =
+    schedule.course.abbreviation === undefined ||
+    schedule.course.abbreviation.trim().length === 0
+      ? schedule.course.name
+      : schedule.course.abbreviation
 
   const locationStrings: LocationString[] = schedule.locationSchedules.map(
     (ls) => {
