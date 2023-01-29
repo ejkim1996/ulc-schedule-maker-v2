@@ -38,6 +38,11 @@ const CreateCourseForm: React.FC<{
       school,
       matchScore: (c: string) => {
         return 1
+      },
+      fullName (): string {
+        return `${this.department}-${this.school} ${this.courseId}: ${
+          this.abbreviation !== undefined ? this.abbreviation : this.name
+        }`
       }
     }
 
