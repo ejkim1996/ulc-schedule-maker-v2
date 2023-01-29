@@ -181,6 +181,13 @@ const LaDashboard: NextPage = () => {
                 uid: crypto.randomUUID(),
                 matchScore: () => {
                   return 1
+                },
+                fullName (): string {
+                  return `${this.department}-${this.school} ${this.courseId}: ${
+                    this.abbreviation !== undefined
+                      ? this.abbreviation
+                      : this.name
+                  }`
                 }
               }
               // const newCourse = new Course(courseName, '', '', '', true, '')
