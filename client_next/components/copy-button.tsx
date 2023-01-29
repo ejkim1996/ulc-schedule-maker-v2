@@ -1,7 +1,11 @@
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { FaCheck, FaCopy } from 'react-icons/fa'
 
-const CopyButton: React.FC<{ copyText: string }> = ({ copyText }) => {
+const CopyButton: React.FC<{
+  copyText: string
+  text?: string
+  icon?: React.ReactNode
+}> = ({ copyText, text, icon }) => {
   const [isCopied, setIsCopied] = useState(false)
 
   async function copyTextToClipboard (text: string): Promise<void> {
@@ -32,12 +36,28 @@ const CopyButton: React.FC<{ copyText: string }> = ({ copyText }) => {
     <div className="">
       <button
         onClick={handleCopyClick}
-        className="btn btn-square bg-purple-100 hover:bg-purple-200 text-purple-900 border-0"
+        className="btn bg-purple-100 hover:bg-purple-200 text-purple-900 border-0"
       >
-        <span>{!isCopied ? <FaCopy /> : <FaCheck />}</span>
+        <span>
+          {!isCopied
+            ? (
+            <span className="flex flex-row gap-2">
+              {icon}
+              {text}
+            </span>
+              )
+            : (
+            <FaCheck />
+              )}
+        </span>
       </button>
     </div>
   )
+}
+
+CopyButton.defaultProps = {
+  text: '',
+  icon: <FaCopy />
 }
 
 export default CopyButton

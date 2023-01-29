@@ -1,6 +1,7 @@
 import { Disclosure } from '@headlessui/react'
 import { CourseSchedule } from '../../@types/scheduler'
 import { FaChevronDown, FaChevronUp } from 'react-icons/fa'
+import { MdTitle } from 'react-icons/md'
 import CopyButton from './copy-button'
 
 interface Props {
@@ -24,11 +25,16 @@ const Group: React.FC<Props> = ({ course: schedule }) => {
     [6, 'Saturday']
   ])
 
-  const courseName =
-    schedule.course.abbreviation === undefined ||
-    schedule.course.abbreviation.trim().length === 0
+  const cls = schedule.course
+
+  const classAbb =
+    cls.abbreviation === undefined || cls.abbreviation.trim().length === 0
       ? schedule.course.name
       : schedule.course.abbreviation
+
+  const courseName = `${cls.department}-${cls.school} ${cls.courseId}: ${
+    classAbb as string
+  }`
 
   const locationStrings: LocationString[] = schedule.locationSchedules.map(
     (ls) => {
@@ -133,16 +139,19 @@ const Group: React.FC<Props> = ({ course: schedule }) => {
       <Disclosure key={courseName} as="div" defaultOpen={true}>
         {({ open }) => (
           <>
-            <Disclosure.Button className="flex w-full justify-between rounded-lg bg-purple-100 px-4 py-2 text-left text-sm font-medium text-purple-900 hover:bg-purple-200 focus:outline-none focus-visible:ring focus-visible:ring-purple-500 focus-visible:ring-opacity-75">
-              <span>{courseName}</span>
-              <span className="my-auto">
-                {open ? <FaChevronUp /> : <FaChevronDown />}
-              </span>
-            </Disclosure.Button>
+            <div className="flex flex-row gap-2">
+              <Disclosure.Button className="flex w-full items-center justify-between rounded-lg bg-purple-100 px-4 py-2 text-left text-sm font-medium text-purple-900 hover:bg-purple-200 focus:outline-none focus-visible:ring focus-visible:ring-purple-500 focus-visible:ring-opacity-75">
+                <span>{courseName}</span>
+                <span className="my-auto">
+                  {open ? <FaChevronUp /> : <FaChevronDown />}
+                </span>
+              </Disclosure.Button>
+              <CopyButton copyText={courseName} icon={<MdTitle />}></CopyButton>
+            </div>
             <Disclosure.Panel className="px-4 pt-2 pb-2 text-sm text-gray-500 grid grid-cols-1 md:grid-cols-2 relative">
               {locationJsx}
               <div className="absolute top-2 right-0">
-                <CopyButton copyText={locationS}></CopyButton>
+                <CopyButton copyText={locationS} text=""></CopyButton>
               </div>
             </Disclosure.Panel>
           </>
